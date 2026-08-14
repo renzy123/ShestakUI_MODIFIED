@@ -952,8 +952,18 @@ local function Shared(self, unit)
 			self.Portrait.Override = UpdatePortrait
 
 			if C.unitframe.portrait_type == "OVERLAY" then
+				if not self.PortraitWrapper then
+					self.PortraitWrapper = CreateFrame("Frame", self:GetName().."_PortraitWrapper", self.Health)
+					self.PortraitWrapper:SetPoint("TOPLEFT", self.Health, "TOPLEFT", 0, 0)
+					self.PortraitWrapper:SetPoint("BOTTOMLEFT", self.Health, "BOTTOMLEFT", 0, 0)
+					self.PortraitWrapper:SetPoint("RIGHT", self.Health:GetStatusBarTexture(), "RIGHT", 0, 0)
+					self.PortraitWrapper:SetClipsChildren(true)
+				end
+
+				self.Portrait:SetParent(self.PortraitWrapper)
 				self.Portrait:ClearAllPoints()
-				self.Portrait:SetAllPoints(self.Health)
+				self.Portrait:SetPoint("TOPLEFT", self.Health, "TOPLEFT", 0, 0)
+				self.Portrait:SetPoint("BOTTOMRIGHT", self.Health, "BOTTOMRIGHT", 0, 0)
 				self.Portrait:SetFrameLevel(self.Health:GetFrameLevel() + 1)
 				if self.Portrait.backdrop then
 					self.Portrait.backdrop:Hide()

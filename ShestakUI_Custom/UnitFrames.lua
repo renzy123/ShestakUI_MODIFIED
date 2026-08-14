@@ -249,10 +249,20 @@ local function CustomStyleUnitFrame(self, unit)
 			self.Power.backdrop:SetFrameLevel(3)
 		end
 
-		-- 3D 头像 OVERLAY 模式嵌入
+		-- 3D 头像 OVERLAY 模式嵌入在生命条上并随当前血量动态裁剪
 		if C.unitframe.portrait_enable and (C.unitframe.portrait_type == "OVERLAY" or C.unitframe.portrait_type == "3D") and self.Portrait then
+			if not self.PortraitWrapper then
+				self.PortraitWrapper = CreateFrame("Frame", self:GetName().."_PortraitWrapper", self.Health)
+				self.PortraitWrapper:SetPoint("TOPLEFT", self.Health, "TOPLEFT", 0, 0)
+				self.PortraitWrapper:SetPoint("BOTTOMLEFT", self.Health, "BOTTOMLEFT", 0, 0)
+				self.PortraitWrapper:SetPoint("RIGHT", self.Health:GetStatusBarTexture(), "RIGHT", 0, 0)
+				self.PortraitWrapper:SetClipsChildren(true)
+			end
+
+			self.Portrait:SetParent(self.PortraitWrapper)
 			self.Portrait:ClearAllPoints()
-			self.Portrait:SetAllPoints(self.Health)
+			self.Portrait:SetPoint("TOPLEFT", self.Health, "TOPLEFT", 0, 0)
+			self.Portrait:SetPoint("BOTTOMRIGHT", self.Health, "BOTTOMRIGHT", 0, 0)
 			self.Portrait:SetFrameLevel(self.Health:GetFrameLevel() + 1)
 			if self.Portrait.backdrop then
 				self.Portrait.backdrop:Hide()

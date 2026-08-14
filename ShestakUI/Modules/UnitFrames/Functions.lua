@@ -9,9 +9,9 @@ local oUF = ns.oUF
 T.oUF = oUF
 
 T.UpdateAllElements = function(frame)
-	for _, v in ipairs(frame.__elements) do
-		v(frame, "UpdateElement", frame.unit)
-	end
+	--BETA for _, v in ipairs(frame.__elements) do
+		-- v(frame, "UpdateElement", frame.unit)
+	-- end
 end
 
 T.SetFontString = function(parent, fontName, fontHeight, fontStyle)
@@ -153,9 +153,10 @@ end
 T.PostUpdateBackdropColor = function(element, color)
 	local bg = element.bg
 	if bg and color then
-		local mu = bg.multiplier or 1
+		-- local mu = bg.multiplier or 1
 		local r, g, b = color:GetRGB()
-		bg:SetVertexColor(r * mu, g * mu, b * mu)
+		-- bg:SetVertexColor(r * mu, g * mu, b * mu)
+		bg:SetVertexColor(r, g, b, 0.2)
 	end
 end
 
@@ -613,7 +614,7 @@ local function castColor(unit)
 	return r, g, b
 end
 
-T.PostCastStart = function(Castbar, unit)
+T.PostCastStart = function(Castbar, unit, _, notInterruptible)
 	if unit == "vehicle" then unit = "player" end
 
 	if unit == "player" and C.unitframe.castbar_latency and Castbar.Latency then
@@ -644,12 +645,12 @@ T.PostCastStart = function(Castbar, unit)
 	end
 
 	if UnitCanAttack("player", unit) then -- check interrupt only for hostile
-		local color = C_CurveUtil.EvaluateColorFromBoolean(Castbar.notInterruptible, {r = 0.8, g = 0, b = 0, a = 1}, {r = r, g = g, b = b, a = 1})
-		local color_border = C_CurveUtil.EvaluateColorFromBoolean(Castbar.notInterruptible, {r = 0.8, g = 0, b = 0, a = 1}, {r = C.media.border_color[1], g = C.media.border_color[2], b = C.media.border_color[3], a = 1})
+		local color = C_CurveUtil.EvaluateColorFromBoolean(notInterruptible, {r = 0.8, g = 0, b = 0, a = 1}, {r = r, g = g, b = b, a = 1})
+		local color_border = C_CurveUtil.EvaluateColorFromBoolean(notInterruptible, {r = 0.8, g = 0, b = 0, a = 1}, {r = C.media.border_color[1], g = C.media.border_color[2], b = C.media.border_color[3], a = 1})
 
 		Castbar:GetStatusBarTexture():SetVertexColor(color:GetRGBA())
 		if C.unitframe.own_color then
-			local color_bg = C_CurveUtil.EvaluateColorFromBoolean(Castbar.notInterruptible, {r = 0.8, g = 0, b = 0, a = 0.2}, {r = C.unitframe.uf_color_bg[1], g = C.unitframe.uf_color_bg[2], b = C.unitframe.uf_color_bg[3], a = 1})
+			local color_bg = C_CurveUtil.EvaluateColorFromBoolean(notInterruptible, {r = 0.8, g = 0, b = 0, a = 0.2}, {r = C.unitframe.uf_color_bg[1], g = C.unitframe.uf_color_bg[2], b = C.unitframe.uf_color_bg[3], a = 1})
 			Castbar.bg:SetVertexColor(color_bg:GetRGBA())
 		else
 			Castbar.bg:SetVertexColor(color.r, color.g, color.b, 0.2)
@@ -785,9 +786,9 @@ T.PostCreateIcon = function(_, button)
 		button.Cooldown:SetReverse(true)
 		button.Cooldown:SetPoint("TOPLEFT", button, "TOPLEFT", 2, -2)
 		button.Cooldown:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", -2, 2)
-		button.parent = CreateFrame("Frame", nil, button)
-		button.parent:SetFrameLevel(button.Cooldown:GetFrameLevel() + 1)
-		button.Count:SetParent(button.parent)
+		-- button.parent = CreateFrame("Frame", nil, button)
+		-- button.parent:SetFrameLevel(button.Cooldown:GetFrameLevel() + 1)
+		-- button.Count:SetParent(button.parent)
 	else
 		-- button.Cooldown:SetAlpha(0)
 	end
@@ -856,9 +857,9 @@ T.CreateRaidBuffIcon = function(_, button)
 
 	if C.aura.show_spiral then
 		button.Cooldown:SetReverse(true)
-		button.parent = CreateFrame("Frame", nil, button)
-		button.parent:SetFrameLevel(button.Cooldown:GetFrameLevel() + 1)
-		button.Count:SetParent(button.parent)
+		-- button.parent = CreateFrame("Frame", nil, button)
+		-- button.parent:SetFrameLevel(button.Cooldown:GetFrameLevel() + 1)
+		-- button.Count:SetParent(button.parent)
 	else
 		-- button.Cooldown:SetAlpha(0)
 	end

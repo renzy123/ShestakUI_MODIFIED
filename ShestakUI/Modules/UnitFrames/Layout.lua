@@ -91,7 +91,13 @@ local function Shared(self, unit)
 
 	-- Register click
 	self:RegisterForClicks("AnyUp")
-	self:SetScript("OnEnter", UnitFrame_OnEnter)
+	self:SetScript("OnEnter", function(self)
+		local unit = self.__unit
+		if unit then
+			self.unit = unit
+			UnitFrame_OnEnter(self)
+		end
+	end)
 	self:SetScript("OnLeave", UnitFrame_OnLeave)
 
 	local unit = (unit and unit:find("arena%dtarget")) and "arenatarget"
@@ -859,26 +865,6 @@ local function Shared(self, unit)
 	-- Debuff icons
 	if unit == "pet" and C.aura.pet_debuffs or unit == "focus" and C.aura.focus_debuffs
 	or unit == "focustarget" and C.aura.fot_debuffs or unit == "targettarget" and C.aura.tot_debuffs then
-		-- self.Debuffs = CreateFrame("Frame", self:GetName().."_Debuffs", self)
-		-- self.Debuffs:SetHeight(25)
-		-- self.Debuffs:SetWidth(pet_width + 4)
-		-- self.Debuffs.size = T.Scale(C.aura.debuff_size)
-		-- self.Debuffs.spacing = T.Scale(3)
-		-- self.Debuffs.num = 4
-		-- self.Debuffs.growthY = "DOWN"
-		-- if unit == "pet" or unit == "focus" then
-			-- self.Debuffs:SetPoint("TOPRIGHT", self, "BOTTOMRIGHT", 2, -17)
-			-- self.Debuffs.initialAnchor = "TOPRIGHT"
-			-- self.Debuffs.growthX = "LEFT"
-		-- else
-			-- self.Debuffs:SetPoint("TOPLEFT", self, "BOTTOMLEFT", -2, -17)
-			-- self.Debuffs.initialAnchor = "TOPLEFT"
-			-- self.Debuffs.growthX = "RIGHT"
-		-- end
-		-- self.Debuffs.PostCreateButton = T.PostCreateIcon
-		-- self.Debuffs.PostUpdateButton = T.PostUpdateIcon
-		-- self.Debuffs.FilterAura = T.CustomFilter
-
 		self.Debuffs = CreateFrame("Frame", self:GetName().."_Debuffs", self)
 		self.Debuffs:SetHeight(165)
 		self.Debuffs:SetWidth(pet_width or 120)
@@ -975,23 +961,6 @@ local function Shared(self, unit)
 		if unit == "player" then
 			-- Debuffs on player
 			if C.aura.player_auras then
-				-- self.Debuffs = CreateFrame("Frame", self:GetName().."_Debuffs", self)
-				-- self.Debuffs:SetHeight(165)
-				-- self.Debuffs:SetWidth(player_width + 4)
-				-- self.Debuffs.size = T.Scale(C.aura.debuff_size)
-				-- self.Debuffs.spacing = T.Scale(3)
-				-- self.Debuffs.initialAnchor = "BOTTOMRIGHT"
-				-- self.Debuffs.growthX = "LEFT"
-				-- self.Debuffs.growthY = "UP"
-				-- if (T.class == "DEATHKNIGHT" and C.unitframe_class_bar.rune)
-				-- or ((T.class == "DRUID" or T.class == "ROGUE") and C.unitframe_class_bar.combo and C.unitframe_class_bar.combo_old ~= true)
-				-- or (T.class == "SHAMAN" and C.unitframe_class_bar.totem)
-				-- or (T.class == "WARLOCK" and C.unitframe_class_bar.shard) then
-					-- self.Debuffs:SetPoint("BOTTOMRIGHT", self, "TOPRIGHT", 2, 19)
-				-- else
-					-- self.Debuffs:SetPoint("BOTTOMRIGHT", self, "TOPRIGHT", 2, 5)
-				-- end
-
 				self.Debuffs = CreateFrame("Frame", self:GetName().."_Debuffs", self)
 				self.Debuffs:SetHeight(165)
 				self.Debuffs:SetWidth(player_width + 4)
@@ -1741,7 +1710,7 @@ if C.unitframe.lines then
 	HorizontalTargetLine:RegisterEvent("PLAYER_TARGET_CHANGED")
 	HorizontalTargetLine:SetScript("OnEvent", function(self)
 		local _, class = UnitClass("target")
-		local color = (CUSTOM_CLASS_COLORS or RAID_CLASS_COLORS)[class]
+		local color = canaccessvalue(class) and (CUSTOM_CLASS_COLORS or RAID_CLASS_COLORS)[class]
 		if color then
 			self:SetBackdropBorderColor(color.r, color.g, color.b)
 		else
@@ -1755,7 +1724,7 @@ if C.unitframe.lines then
 	VerticalTargetLine:RegisterEvent("PLAYER_TARGET_CHANGED")
 	VerticalTargetLine:SetScript("OnEvent", function(self)
 		local _, class = UnitClass("target")
-		local color = (CUSTOM_CLASS_COLORS or RAID_CLASS_COLORS)[class]
+		local color = canaccessvalue(class) and (CUSTOM_CLASS_COLORS or RAID_CLASS_COLORS)[class]
 		if color then
 			self:SetBackdropBorderColor(color.r, color.g, color.b)
 		else

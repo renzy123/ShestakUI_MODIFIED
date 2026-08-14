@@ -1292,35 +1292,11 @@ local function Shared(self, unit)
 		self.FactionIcon:SetPoint("TOP", 0, 0)
 
 		-- Crowd control icon
-		--BETA self.Debuffs = CreateFrame("Frame", self:GetName().."_Debuffs", self)
-		-- self.Debuffs:SetSize(31 + T.extraHeight, 31 + T.extraHeight)
-		-- self.Debuffs:SetFrameStrata("HIGH")
-		-- self.Debuffs.size = T.Scale(31 + T.extraHeight)
-		-- self.Debuffs.num = 1
-		-- if C.unitframe.boss_on_right then
-			-- self.Debuffs:SetPoint("RIGHT", self, "LEFT", -5, 0)
-			-- self.Debuffs.initialAnchor = "RIGHT"
-			-- self.Debuffs.growthX = "LEFT"
-		-- else
-			-- self.Debuffs:SetPoint("LEFT", self, "RIGHT", 5, 0)
-			-- self.Debuffs.initialAnchor = "LEFT"
-			-- self.Debuffs.growthX = "RIGHT"
-		-- end
-
-		-- self.Debuffs.PostCreateButton = T.PostCreateIcon
-		-- self.Debuffs.PostUpdateButton = T.PostUpdateRaidButton
-
-		-- self.Debuffs.filter = "HARMFUL|CROWD_CONTROL"
-
-		self.Debuffs = self:CreateAuras()
+		self.Debuffs = CreateFrame("Frame", self:GetName().."_Debuffs", self)
+		self.Debuffs:SetSize(31 + T.extraHeight, 31 + T.extraHeight)
+		self.Debuffs:SetFrameStrata("HIGH")
 		self.Debuffs.size = T.Scale(31 + T.extraHeight)
-		self.Debuffs.showCount = true
-		self.Debuffs.elementSpacing = T.Scale(3)
-		self.Debuffs.growthY = "DOWN"
-
-		self.Debuffs.PostCreateButton = T.PostCreateIcon
-		self.Debuffs.PostUpdateButton = T.PostUpdateIcon
-
+		self.Debuffs.num = 1
 		if C.unitframe.boss_on_right then
 			self.Debuffs:SetPoint("RIGHT", self, "LEFT", -5, 0)
 			self.Debuffs.initialAnchor = "RIGHT"
@@ -1331,9 +1307,10 @@ local function Shared(self, unit)
 			self.Debuffs.growthX = "RIGHT"
 		end
 
-		self.Debuffs:AddGroup("HARMFUL|CROWD_CONTROL", {
-			maxFrameCount = 1,
-		})
+		self.Debuffs.PostCreateButton = T.PostCreateIcon
+		self.Debuffs.PostUpdateButton = T.PostUpdateRaidButton
+
+		self.Debuffs.filter = "HARMFUL|CROWD_CONTROL"
 
 		--BETA self.AuraTracker = CreateFrame("Frame", self:GetName().."_AuraTracker", self)
 		-- self.AuraTracker:SetWidth(self.Trinket:GetWidth())

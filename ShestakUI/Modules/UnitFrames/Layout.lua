@@ -879,11 +879,18 @@ local function Shared(self, unit)
 		-- self.Debuffs.PostUpdateButton = T.PostUpdateIcon
 		-- self.Debuffs.FilterAura = T.CustomFilter
 
-		self.Debuffs = self:CreateAuras()
+		self.Debuffs = self:CreateAuras({
+			initialAnchor = (unit == "pet" or unit == "focus") and "TOPRIGHT" or "TOPLEFT",
+			growthX = (unit == "pet" or unit == "focus") and "LEFT" or "RIGHT",
+			growthY = "DOWN",
+			layoutLimit = pet_width or 120,
+		})
 		self.Debuffs.size = T.Scale(C.aura.debuff_size)
 		self.Debuffs.showCount = true
 		self.Debuffs.elementSpacing = T.Scale(3)
+		self.Debuffs.lineSpacing = T.Scale(3)
 		self.Debuffs.growthY = "DOWN"
+		self.Debuffs.layoutLimit = pet_width or 120
 
 		self.Debuffs.PostCreateButton = T.PostCreateIcon
 		self.Debuffs.PostUpdateButton = T.PostUpdateIcon
@@ -986,12 +993,20 @@ local function Shared(self, unit)
 					-- self.Debuffs:SetPoint("BOTTOMRIGHT", self, "TOPRIGHT", 2, 5)
 				-- end
 
-				self.Debuffs = self:CreateAuras()
+				self.Debuffs = self:CreateAuras({
+					initialAnchor = "BOTTOMRIGHT",
+					growthX = "LEFT",
+					growthY = "UP",
+					layoutLimit = player_width + 4,
+				})
 				self.Debuffs.showCount = true
 				self.Debuffs.elementSpacing = T.Scale(3)
+				self.Debuffs.lineSpacing = T.Scale(3)
 				self.Debuffs.tooltipAnchor = "ANCHOR_TOPRIGHT"
 				self.Debuffs.initialAnchor = "BOTTOMRIGHT"
 				self.Debuffs.growthX = "LEFT"
+				self.Debuffs.growthY = "UP"
+				self.Debuffs.layoutLimit = player_width + 4
 
 				self.Debuffs.size = T.Scale(C.aura.debuff_size)
 
@@ -1021,29 +1036,21 @@ local function Shared(self, unit)
 		if unit == "target" then
 			-- Auras on target
 			if C.aura.target_auras then
-				-- self.Auras = CreateFrame("Frame", self:GetName().."_Auras", self)
-				-- self.Auras:SetPoint("BOTTOMLEFT", self, "TOPLEFT", -2, 5)
-				-- self.Auras.initialAnchor = "BOTTOMLEFT"
-				-- self.Auras.growthX = "RIGHT"
-				-- self.Auras.growthY = "UP"
-				-- self.Auras.numDebuffs = 16
-				-- self.Auras.numBuffs = 32
-				-- self.Auras:SetHeight(165)
-				-- self.Auras:SetWidth(player_width - 6)
-				-- self.Auras.spacing = T.Scale(3)
-				-- self.Auras.size = T.Scale(C.aura.debuff_size)
-				-- self.Auras.gap = true
-				-- self.Auras.PostCreateButton = T.PostCreateIcon
-				-- self.Auras.PostUpdateButton = T.PostUpdateIcon
-				-- self.Auras.PostUpdateGapButton = T.PostUpdateGapButton
-				-- self.Auras.FilterAura = T.CustomFilter
-
-				self.Auras = self:CreateAuras()
+				self.Auras = self:CreateAuras({
+					initialAnchor = "BOTTOMLEFT",
+					growthX = "RIGHT",
+					growthY = "UP",
+					layoutLimit = player_width - 4,
+				})
 				self.Auras.showCount = true
 				self.Auras.elementSpacing = T.Scale(3)
+				self.Auras.lineSpacing = T.Scale(3)
 				self.Auras.groupSpacing = T.Scale(C.aura.debuff_size)
 				self.Auras.tooltipAnchor = "ANCHOR_TOPRIGHT"
-				self.Auras.layoutLimit = player_width - 56
+				self.Auras.initialAnchor = "BOTTOMLEFT"
+				self.Auras.growthX = "RIGHT"
+				self.Auras.growthY = "UP"
+				self.Auras.layoutLimit = player_width - 4
 
 				self.Auras:SetPoint("BOTTOMLEFT", self, "TOPLEFT", -2, 5)
 				self.Auras.size = T.Scale(C.aura.debuff_size)
@@ -1053,11 +1060,12 @@ local function Shared(self, unit)
 
 				self.Auras:AddGroup("HELPFUL", {
 					maxFrameCount = 32,
+					showBuffBorder = true,
 				})
 
 				self.Auras:AddGroup("HARMFUL", {
 					maxFrameCount = 16,
-					-- showDebuffBorder = true,
+					showDebuffBorder = true,
 				})
 
 			end
@@ -1449,11 +1457,21 @@ local function Shared(self, unit)
 			-- self.Auras.PostUpdateGapButton = T.PostUpdateGapButton
 			-- self.Auras.FilterAura = T.CustomFilterBoss
 
-			self.Auras = self:CreateAuras()
+			self.Auras = self:CreateAuras({
+				initialAnchor = C.unitframe.boss_on_right and "RIGHT" or "LEFT",
+				growthX = C.unitframe.boss_on_right and "LEFT" or "RIGHT",
+				growthY = "UP",
+				layoutLimit = (34 + T.extraHeight) * (C.aura.boss_debuffs + C.aura.boss_buffs + 1),
+			})
 			self.Auras.showCount = true
 			self.Auras.elementSpacing = T.Scale(3)
+			self.Auras.lineSpacing = T.Scale(3)
 			self.Auras.groupSpacing = T.Scale(C.aura.debuff_size)
 			self.Auras.tooltipAnchor = "ANCHOR_TOPRIGHT"
+			self.Auras.initialAnchor = C.unitframe.boss_on_right and "RIGHT" or "LEFT"
+			self.Auras.growthX = C.unitframe.boss_on_right and "LEFT" or "RIGHT"
+			self.Auras.growthY = "UP"
+			self.Auras.layoutLimit = (34 + T.extraHeight) * (C.aura.boss_debuffs + C.aura.boss_buffs + 1)
 
 			self.Auras.PostCreateButton = T.PostCreateIcon
 			self.Auras.PostUpdateButton = T.PostUpdateIcon

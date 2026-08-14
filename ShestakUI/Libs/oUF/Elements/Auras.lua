@@ -140,12 +140,28 @@ function elementMixin:AddGroup(filter, options)
 	-- attributes inherited from the element
 	options.maxFrameCount = options.maxFrameCount or self.maxFrameCount
 
+	-- 动态同步 FlowLayout 参数到底层 AuraContainer
+	if self.initialAnchor and self.SetFlowLayoutAnchorPoint then
+		self:SetFlowLayoutAnchorPoint(self.initialAnchor)
+	end
+
+	local maxLineSize = self.layoutLimit or (self.__owner and self.__owner:GetWidth()) or 0
+	if maxLineSize > 0 and self.SetFlowLayoutMaximumLineSize then
+		self:SetFlowLayoutMaximumLineSize(maxLineSize)
+	end
+
+	if (self.growthX or self.growthY) and self.SetFlowLayoutGrowthDirection then
+		local growthX = (self.growthX == "LEFT" and -1) or 1
+		local growthY = (self.growthY == "DOWN" and -1) or 1
+		self:SetFlowLayoutGrowthDirection(growthX, growthY)
+	end
+
 	-- layout attributes inherited from the element
 	local layout = options.layout or {}
-	layout.elementSpacing = layout.elementSpacing or self.elementSpacing
-	layout.lineSpacing = layout.lineSpacing or self.lineSpacing
-	layout.groupSpacing = layout.groupSpacing or self.groupSpacing
-	layout.groupLineSpacing = layout.groupLineSpacing or self.groupLineSpacing
+	layout.elementSpacing = layout.elementSpacing or self.elementSpacing or 3
+	layout.lineSpacing = layout.lineSpacing or self.lineSpacing or 3
+	layout.groupSpacing = layout.groupSpacing or self.groupSpacing or 3
+	layout.groupLineSpacing = layout.groupLineSpacing or self.groupLineSpacing or 3
 	layout.forceNewLine = layout.forceNewLine or self.forceNewLine
 	options.layout = layout
 

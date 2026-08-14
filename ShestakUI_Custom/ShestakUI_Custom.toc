@@ -1,0 +1,12 @@
+## Interface: 110100, 110105, 120000, 120100
+## Title: ShestakUI Custom
+## Notes: Custom styles and layout tweaks for ShestakUI
+## Author: ShestakUI Mod
+## Version: 1.0.0
+## RequiredDeps: ShestakUI
+## OptionalDeps: ShestakUI_Config
+
+Config.lua
+UnitFrames.lua
+RaidFrames.lua
+Other.lua

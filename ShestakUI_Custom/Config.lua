@@ -17,8 +17,9 @@ if C.unitframe then
 	C.unitframe.show_player_power = false -- 玩家框体不显示能量/法力数值
 end
 
--- 团队/小队框体配置：小队队友不显示能量数值，小队纵向间距设为 7
+-- 团队/小队框体配置：小队队友不显示能量数值，小队纵向间距设为 14（可自由调整）
 if C.raidframe then
 	C.raidframe.show_party_power = false
-	C.raidframe.party_spacing = 7
+	C.raidframe.party_spacing = 14
+	C.raidframe.dps_party_vertical_spacing = 14
 end

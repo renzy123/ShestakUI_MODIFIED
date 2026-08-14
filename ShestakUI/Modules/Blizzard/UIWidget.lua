@@ -90,7 +90,45 @@ local atlasColors = {
 	["objectivewidget-bar-fill-right"] = {0.9, 0.2, 0.2}
 }
 
+-- 核心安全防护：判断 Widget 是否属于 GameTooltip / TaskPOI / AreaPOI 等提示框内部嵌入控件
+-- 嵌入在 GameTooltip 内部的 UIWidget 包含暴雪加密的 Secret Number，若被插件修改会导致整个上下文被污染(Tainted)，
+-- 随后当调用 UIWidgetTemplateTextWithState.lua:35 或 GameTooltip:Hide() 时便会爆出 'attempt to perform arithmetic on local textHeight (a secret number value)' 致命错误。
+local function IsTooltipWidget(widget)
+	if not widget or widget:IsForbidden() then return true end
+
+	-- 1. 检查 widget 关联的底层容器对象 (如 GameTooltip 关联容器)
+	if widget.widgetContainer then
+		local container = widget.widgetContainer
+		if container == GameTooltip or container == ItemRefTooltip then return true end
+		if container.disableWidgetTooltips or container.widgetSetID or (container.GetName and container:GetName() and container:GetName():find("Tooltip")) then
+			return true
+		end
+	end
+
+	-- 2. 检查特定加密的地图 AreaPOI / TaskPOI / 每周奖励 WidgetSetID
+	if widget.widgetSetID or (widget.widgetInfo and widget.widgetInfo.widgetSetID) then
+		return true
+	end
+
+	-- 3. 向上遍历父级 Frame 关系链
+	local parent = widget:GetParent()
+	while parent do
+		if parent == GameTooltip or parent == ItemRefTooltip then
+			return true
+		end
+		if parent.GetName and parent:GetName() and (parent:GetName():find("Tooltip") or parent:GetName():find("UIWidgetManager")) then
+			return true
+		end
+		if parent.widgetSetID or parent.disableWidgetTooltips or parent.showAndHideOnWidgetSetRegistration ~= nil then
+			return true
+		end
+		parent = parent:GetParent()
+	end
+	return false
+end
+
 local function SkinStatusBar(widget)
+	if IsTooltipWidget(widget) then return end
 	local bar = widget.Bar
 
 	if widget:IsForbidden() then
@@ -212,6 +250,7 @@ local function SkinSpell(widget)
 end
 
 local function SkinItemDisplay(widget)
+	if IsTooltipWidget(widget) then return end
 	if not widget.styled then
 		widget.Item.Icon:SkinIcon(true)
 		T.SkinIconBorder(widget.Item.IconBorder, widget.Item.Icon.b, nil, true)
@@ -222,6 +261,7 @@ local function SkinItemDisplay(widget)
 end
 
 local function SkinItem(widget)
+	if IsTooltipWidget(widget) then return end
 	if not widget.styled then
 		widget.Icon:SkinIcon(true)
 		T.SkinIconBorder(widget.IconBorder, widget.Icon.b, nil, true)
@@ -230,11 +270,16 @@ local function SkinItem(widget)
 end
 
 local function SkinText(widget, widgetInfo)
-	if widgetInfo.enabledState == 3 then
-		T.ReplaceIconString(widget.Text, nil, 30)	-- this is for major faction icon
-	else
-		T.ReplaceIconString(widget.Text)			-- find in Worldsoul Memory tooltip
-	end
+	if not widget or IsTooltipWidget(widget) or not widgetInfo or not widget.Text then return end
+	if issecretvalue(widget.Text) then return end
+
+	pcall(function()
+		if widgetInfo.enabledState == 3 then
+			T.ReplaceIconString(widget.Text, nil, 30)	-- this is for major faction icon
+		else
+			T.ReplaceIconString(widget.Text)			-- find in Worldsoul Memory tooltip
+		end
+	end)
 end
 
 local frame = CreateFrame("Frame")

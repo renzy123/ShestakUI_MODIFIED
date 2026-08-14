@@ -1,4 +1,4 @@
-﻿local T, C, L, _ = unpack(ShestakUI)
+local T, C, L, _ = unpack(ShestakUI)
 if C.actionbar.enable ~= true then return end
 
 ----------------------------------------------------------------------------------------
@@ -438,7 +438,11 @@ end)
 ----------------------------------------------------------------------------------------
 local Cooldown_MT = getmetatable(_G.ActionButton1Cooldown).__index
 hooksecurefunc(Cooldown_MT, "SetCooldown", function(cooldown)
-	if cooldown:IsForbidden() then return end
+	if not cooldown or cooldown:IsForbidden() or issecretvalue(cooldown) or cooldown.styled then return end
 
-	T.SkinCooldown(cooldown, "actionbar")
+	-- 避免在暴雪当次 SetCooldown 传输 secret number 参数管道时同帧修改控件引起 Taint
+	C_Timer.After(0, function()
+		if not cooldown or cooldown:IsForbidden() then return end
+		pcall(T.SkinCooldown, cooldown, "actionbar")
+	end)
 end)

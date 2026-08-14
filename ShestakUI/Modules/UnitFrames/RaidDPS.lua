@@ -239,7 +239,7 @@ local function Shared(self, unit)
 	end
 
 	-- Debuff icons
-	if unit == "party" and (not (suffix == "target")) and (not (suffix == "pet")) then
+	if C.raidframe.dps_party_debuffs and unit == "party" and (not (suffix == "target")) and (not (suffix == "pet")) then
 		self.Debuffs = CreateFrame("Frame", self:GetName().."Debuffs", self)
 		self.Debuffs:SetPoint("TOPLEFT", self, "BOTTOMLEFT", -2, -5)
 		self.Debuffs:SetHeight(18)
@@ -299,6 +299,7 @@ oUF:Factory(function(self)
 	oUF:SetActiveStyle("ShestakDPS")
 	if C.raidframe.show_party == true then
 		-- Party
+		local party_spacing = (C.raidframe.dps_party_debuffs and 28) or (C.raidframe.dps_party_vertical_spacing or 1)
 		local party = self:SpawnHeader("oUF_PartyDPS", nil,
 			"oUF-initialConfigFunction", [[
 				local header = self:GetParent()
@@ -314,11 +315,11 @@ oUF:Factory(function(self)
 			"sortMethod", C.raidframe.by_role and "NAME",
 			"showParty", true,
 			"showRaid", true,
-			"yOffset", T.Scale(28),
+			"yOffset", T.Scale(party_spacing),
 			"point", "BOTTOM"
 		)
 		party:SetVisibility("custom [@raid6,exists] hide;show")
-		_G["PartyDPSAnchor"]:SetSize(T.Scale(party_width), T.Scale(party_height) * 5 + T.Scale(28) * 4)
+		_G["PartyDPSAnchor"]:SetSize(T.Scale(party_width), T.Scale(party_height) * 5 + T.Scale(party_spacing) * 4)
 		party:SetPoint("BOTTOMLEFT", _G["PartyDPSAnchor"])
 
 		-- Party targets

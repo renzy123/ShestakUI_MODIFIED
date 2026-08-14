@@ -1814,8 +1814,11 @@ do
 	local hide_health_value = ns.CreateCheckBox(parent, "hide_health_value")
 	hide_health_value:SetPoint("TOPLEFT", deficit_health, "BOTTOMLEFT", 0, 0)
 
+	local show_party_power = ns.CreateCheckBox(parent, "show_party_power")
+	show_party_power:SetPoint("TOPLEFT", hide_health_value, "BOTTOMLEFT", 0, 0)
+
 	local alpha_health = ns.CreateCheckBox(parent, "alpha_health", L_GUI_UF_ALPHA_HEALTH)
-	alpha_health:SetPoint("TOPLEFT", hide_health_value, "BOTTOMLEFT", 0, 0)
+	alpha_health:SetPoint("TOPLEFT", show_party_power, "BOTTOMLEFT", 0, 0)
 
 	local show_range = ns.CreateCheckBox(parent, "show_range", L_GUI_UF_SHOW_RANGE)
 	show_range:SetPoint("TOPLEFT", alpha_health, "BOTTOMLEFT", 0, 0)

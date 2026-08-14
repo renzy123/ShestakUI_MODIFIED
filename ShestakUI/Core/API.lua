@@ -1,4 +1,4 @@
-﻿local T, C, L = unpack(ShestakUI)
+local T, C, L = unpack(ShestakUI)
 
 local backdropr, backdropg, backdropb, backdropa = unpack(C.media.backdrop_color)
 local borderr, borderg, borderb, bordera = unpack(C.media.border_color)
@@ -290,18 +290,42 @@ end
 ----------------------------------------------------------------------------------------
 --	Style buttons function
 ----------------------------------------------------------------------------------------
+-- 核心辅助函数：完备获取 Button 上的文本 FontString 对象
+-- ROOT CAUSE 深度修复：在现代 UI / 插件中，许多按钮为匿名框架 (self:GetName() 为 nil)，或文本节点直接挂载在 self.Text / self.text / self:GetFontString() 上。
+-- 此处全面兼容各类型节点指针，彻底消除 self:GetName().."Text" 在匿名按钮下造成的 nil 拼接崩溃，并确保 Hover/Leave 文本高亮复原功能 100% 正常生效。
+local function GetButtonTextFontString(self)
+	if not self then return end
+	if self.colorText == "Text" and self.Text then
+		return self.Text
+	elseif self.colorText == "Button" and self.ButtonText then
+		return self.ButtonText
+	elseif self.colorText == "Name" then
+		if self.Text then
+			return self.Text
+		elseif self.text then
+			return self.text
+		elseif self.ButtonText then
+			return self.ButtonText
+		elseif self.GetFontString then
+			local fs = self:GetFontString()
+			if fs then return fs end
+		end
+		local name = self:GetName()
+		if name then
+			return _G[name.."Text"]
+		end
+	end
+end
+
 T.SetModifiedBackdrop = function(self)
 	if self:IsEnabled() then
 		self:SetBackdropBorderColor(unpack(C.media.classborder_color))
 		if self.overlay then
 			self.overlay:SetVertexColor(C.media.classborder_color[1] * 0.3, C.media.classborder_color[2] * 0.3, C.media.classborder_color[3] * 0.3, 1)
 		end
-		if self.colorText == "Text" then
-			self.Text:SetTextColor(1, 1, 1)
-		elseif self.colorText == "Button" then
-			self.ButtonText:SetTextColor(1, 1, 1)
-		elseif self.colorText == "Name" then
-			_G[self:GetName().."Text"]:SetTextColor(1, 1, 1)
+		local text = GetButtonTextFontString(self)
+		if text and text.SetTextColor then
+			text:SetTextColor(1, 1, 1)
 		end
 	end
 end
@@ -311,12 +335,9 @@ T.SetOriginalBackdrop = function(self)
 	if self.overlay then
 		self.overlay:SetVertexColor(0.1, 0.1, 0.1, 1)
 	end
-	if self.colorText == "Text" then
-		self.Text:SetTextColor(NORMAL_FONT_COLOR.r, NORMAL_FONT_COLOR.g, NORMAL_FONT_COLOR.b)
-	elseif self.colorText == "Button" then
-		self.ButtonText:SetTextColor(NORMAL_FONT_COLOR.r, NORMAL_FONT_COLOR.g, NORMAL_FONT_COLOR.b)
-	elseif self.colorText == "Name" then
-		_G[self:GetName().."Text"]:SetTextColor(NORMAL_FONT_COLOR.r, NORMAL_FONT_COLOR.g, NORMAL_FONT_COLOR.b)
+	local text = GetButtonTextFontString(self)
+	if text and text.SetTextColor then
+		text:SetTextColor(NORMAL_FONT_COLOR.r, NORMAL_FONT_COLOR.g, NORMAL_FONT_COLOR.b)
 	end
 end
 
@@ -1333,32 +1354,39 @@ numberFormatter:SetBreakpoints({
 })
 
 function T.SkinCooldown(cooldown, name)
-	if cooldown.styled then return end
-	local text = cooldown:GetCountdownFontString()
+	if not cooldown or cooldown:IsForbidden() or issecretvalue(cooldown) or cooldown.styled then return end
 
-	if name == "aura" then
-		cooldown:SetDrawEdge(false)
-		cooldown:SetSwipeColor(0, 0, 0, C.aura.show_spiral and 0.7 or 0)
-		if not C.aura.show_timer then
-			cooldown:SetHideCountdownNumbers(true)
+	-- 安全隔离防护：使用 pcall 避免在 11.x/12.x/12.1.0 加密 CD 管道中引发上下文污染
+	pcall(function()
+		local text = cooldown:GetCountdownFontString()
+
+		if name == "aura" then
+			cooldown:SetDrawEdge(false)
+			cooldown:SetSwipeColor(0, 0, 0, C.aura.show_spiral and 0.7 or 0)
+			if not C.aura.show_timer then
+				cooldown:SetHideCountdownNumbers(true)
+			end
+			cooldown:SetCountdownFont("ShestakUI_AuraTimerFont")
+			if text then text:SetHeight(C.font.auras_font_size) end
+		elseif name == "actionbar" then
+			cooldown:SetCountdownFont("ShestakUI_ActionBarTimerFont")
+			if text then text:SetHeight(C.font.cooldown_timers_font_size) end
 		end
-		cooldown:SetCountdownFont("ShestakUI_AuraTimerFont")
-		text:SetHeight(C.font.auras_font_size)
-		-- cooldown:SetCountdownMillisecondsThreshold(5)
-	elseif name == "actionbar" then
-		cooldown:SetCountdownFont("ShestakUI_ActionBarTimerFont")
-		text:SetHeight(C.font.cooldown_timers_font_size)
-	end
 
-	cooldown:SetCountdownFormatter(numberFormatter)
+		if numberFormatter then
+			cooldown:SetCountdownFormatter(numberFormatter)
+		end
 
-	text:ClearAllPoints()
-	text:SetPoint("LEFT", -2, 0)
-	text:SetPoint("RIGHT", 5, 0)
-	text:SetJustifyH("CENTER")
-	cooldown.text = text
+		if text then
+			text:ClearAllPoints()
+			text:SetPoint("LEFT", -2, 0)
+			text:SetPoint("RIGHT", 5, 0)
+			text:SetJustifyH("CENTER")
+			cooldown.text = text
+		end
 
-	cooldown.styled = true
+		cooldown.styled = true
+	end)
 end
 
 local LoadBlizzardSkin = CreateFrame("Frame")

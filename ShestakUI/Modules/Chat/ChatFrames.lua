@@ -1,4 +1,4 @@
-﻿local T, C, L = unpack(ShestakUI)
+local T, C, L = unpack(ShestakUI)
 if C.chat.enable ~= true then return end
 
 ----------------------------------------------------------------------------------------
@@ -180,14 +180,24 @@ local function SetChatStyle(frame)
 	if _G[chat] ~= _G["ChatFrame2"] then
 		origs[_G[chat]] = _G[chat].AddMessage
 		_G[chat].AddMessage = AddMessage
-		-- Custom timestamps color
-		local color = C.chat.custom_time_color and T.RGBToHex(unpack(C.chat.time_color)) or ""
-		_G.TIMESTAMP_FORMAT_HHMM = color.."[%I:%M]|r "
-		_G.TIMESTAMP_FORMAT_HHMMSS = color.."[%I:%M:%S]|r "
-		_G.TIMESTAMP_FORMAT_HHMMSS_24HR = color.."[%H:%M:%S]|r "
-		_G.TIMESTAMP_FORMAT_HHMMSS_AMPM = color.."[%I:%M:%S %p]|r "
-		_G.TIMESTAMP_FORMAT_HHMM_24HR = color.."[%H:%M]|r "
-		_G.TIMESTAMP_FORMAT_HHMM_AMPM = color.."[%I:%M %p]|r "
+		if C.chat.time_stamp == false then
+			SetCVar("showTimestamps", "none")
+			_G.TIMESTAMP_FORMAT_HHMM = nil
+			_G.TIMESTAMP_FORMAT_HHMMSS = nil
+			_G.TIMESTAMP_FORMAT_HHMMSS_24HR = nil
+			_G.TIMESTAMP_FORMAT_HHMMSS_AMPM = nil
+			_G.TIMESTAMP_FORMAT_HHMM_24HR = nil
+			_G.TIMESTAMP_FORMAT_HHMM_AMPM = nil
+		else
+			-- Custom timestamps color
+			local color = C.chat.custom_time_color and T.RGBToHex(unpack(C.chat.time_color)) or ""
+			_G.TIMESTAMP_FORMAT_HHMM = color.."[%I:%M]|r "
+			_G.TIMESTAMP_FORMAT_HHMMSS = color.."[%I:%M:%S]|r "
+			_G.TIMESTAMP_FORMAT_HHMMSS_24HR = color.."[%H:%M:%S]|r "
+			_G.TIMESTAMP_FORMAT_HHMMSS_AMPM = color.."[%I:%M:%S %p]|r "
+			_G.TIMESTAMP_FORMAT_HHMM_24HR = color.."[%H:%M]|r "
+			_G.TIMESTAMP_FORMAT_HHMM_AMPM = color.."[%I:%M %p]|r "
+		end
 	end
 
 	frame.skinned = true

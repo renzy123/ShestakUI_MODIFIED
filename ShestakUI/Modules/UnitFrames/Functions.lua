@@ -338,6 +338,24 @@ T.PostUpdatePower = function(power, unit, cur, _, max)
 
 	if not power.value then return end
 
+	-- 根据 config 设置判定：若 show_player_power 为 false，则不在玩家框体上显示能量/法力数值
+	if unit == "player" and C.unitframe.show_player_power ~= true then
+		power.value:SetText("")
+		if power.short_value then
+			power.short_value:SetText("")
+		end
+		return
+	end
+
+	-- 根据 config 设置判定：若 show_party_power 为 false，则不在小队队友框体上显示能量/法力具体数值
+	if unit and (unit:find("^party%d?$") or unit == "party") and C.raidframe.show_party_power ~= true then
+		power.value:SetText("")
+		if power.short_value then
+			power.short_value:SetText("")
+		end
+		return
+	end
+
 	if isDead then
 		power.value:SetText()
 		power.short_value:SetText()

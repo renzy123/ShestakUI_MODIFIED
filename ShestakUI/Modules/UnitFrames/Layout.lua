@@ -1434,37 +1434,44 @@ oUF:RegisterStyle("Shestak", Shared)
 local player = oUF:Spawn("player", "oUF_Player")
 player:SetPoint(unpack(C.position.unitframes.player))
 player:SetSize(player_width, 27 + T.extraHeight)
+player:SetFrameStrata("LOW")
 
 local target = oUF:Spawn("target", "oUF_Target")
 target:SetPoint(unpack(C.position.unitframes.target))
 target:SetSize(player_width, 27 + T.extraHeight)
+target:SetFrameStrata("LOW")
 
 if C.unitframe.show_pet then
 	local pet = oUF:Spawn("pet", "oUF_Pet")
 	pet:SetPoint(unpack(C.position.unitframes.pet))
 	pet:SetSize(pet_width, 16 + (C.unitframe.extra_health_height / 2))
+	pet:SetFrameStrata("LOW")
 end
 
 if C.unitframe.show_focus then
 	local focus = oUF:Spawn("focus", "oUF_Focus")
 	focus:SetPoint(unpack(C.position.unitframes.focus))
 	focus:SetSize(pet_width, 16 + (C.unitframe.extra_health_height / 2))
+	focus:SetFrameStrata("LOW")
 
 	local focustarget = oUF:Spawn("focustarget", "oUF_FocusTarget")
 	focustarget:SetPoint(unpack(C.position.unitframes.focus_target))
 	focustarget:SetSize(pet_width, 16 + (C.unitframe.extra_health_height / 2))
+	focustarget:SetFrameStrata("LOW")
 end
 
 if C.unitframe.show_target_target then
 	local targettarget = oUF:Spawn("targettarget", "oUF_TargetTarget")
 	targettarget:SetPoint(unpack(C.position.unitframes.target_target))
 	targettarget:SetSize(pet_width, 16 + (C.unitframe.extra_health_height / 2))
+	targettarget:SetFrameStrata("LOW")
 end
 
 if C.unitframe.show_boss then
 	local boss = {}
 	for i = 1, 10 do
 		boss[i] = oUF:Spawn("boss"..i, "oUF_Boss"..i)
+		boss[i]:SetFrameStrata("LOW")
 		if i == 1 then
 			if C.unitframe.boss_on_right then
 				boss[i]:SetPoint(unpack(C.position.unitframes.boss))
@@ -1482,6 +1489,7 @@ if C.unitframe.show_arena then
 	local arena = {}
 	for i = 1, 5 do
 		arena[i] = oUF:Spawn("arena"..i, "oUF_Arena"..i)
+		arena[i]:SetFrameStrata("LOW")
 		if i == 1 then
 			if C.unitframe.arena_on_right then
 				arena[i]:SetPoint(unpack(C.position.unitframes.arena))
@@ -1497,6 +1505,7 @@ if C.unitframe.show_arena then
 	local arenatarget = {}
 	for i = 1, 5 do
 		arenatarget[i] = oUF:Spawn("arena"..i.."target", "oUF_Arena"..i.."Target")
+		arenatarget[i]:SetFrameStrata("LOW")
 		if i == 1 then
 			if C.unitframe.arena_on_right then
 				arenatarget[i]:SetPoint("TOPLEFT", arena[i], "TOPRIGHT", 7, 0)
@@ -1671,10 +1680,12 @@ SLASH_TEST_UF4 = "/еуыега"
 if C.unitframe.lines then
 	local HorizontalPlayerLine = CreateFrame("Frame", "HorizontalPlayerLine", oUF_Player)
 	HorizontalPlayerLine:CreatePanel("ClassColor", player_width + 11, 1, "TOPLEFT", "oUF_Player", "BOTTOMLEFT", -5, -5)
+	HorizontalPlayerLine:SetFrameStrata("LOW")
 	HorizontalPlayerLine:SetBackdropBorderColor(T.color.r, T.color.g, T.color.b)
 
 	local VerticalPlayerLine = CreateFrame("Frame", "VerticalPlayerLine", oUF_Player)
 	VerticalPlayerLine:CreatePanel("ClassColor", 1, 98 + T.extraHeight + (C.unitframe.extra_health_height / 2), "TOPRIGHT", "oUF_Player", "TOPLEFT", -5, 30)
+	VerticalPlayerLine:SetFrameStrata("LOW")
 	VerticalPlayerLine:SetBackdropBorderColor(T.color.r, T.color.g, T.color.b)
 end
 
@@ -1684,6 +1695,7 @@ end
 if C.unitframe.lines then
 	local HorizontalTargetLine = CreateFrame("Frame", "HorizontalTargetLine", oUF_Target)
 	HorizontalTargetLine:CreatePanel("ClassColor", player_width + 11, 1, "TOPRIGHT", "oUF_Target", "BOTTOMRIGHT", 5, -5)
+	HorizontalTargetLine:SetFrameStrata("LOW")
 	HorizontalTargetLine:RegisterEvent("PLAYER_TARGET_CHANGED")
 	HorizontalTargetLine:SetScript("OnEvent", function(self)
 		local _, class = UnitClass("target")
@@ -1697,6 +1709,7 @@ if C.unitframe.lines then
 
 	local VerticalTargetLine = CreateFrame("Frame", "VerticalTargetLine", oUF_Target)
 	VerticalTargetLine:CreatePanel("ClassColor", 1, 98 + T.extraHeight + (C.unitframe.extra_health_height / 2), "TOPLEFT", "oUF_Target", "TOPRIGHT", 5, 30)
+	VerticalTargetLine:SetFrameStrata("LOW")
 	VerticalTargetLine:RegisterEvent("PLAYER_TARGET_CHANGED")
 	VerticalTargetLine:SetScript("OnEvent", function(self)
 		local _, class = UnitClass("target")

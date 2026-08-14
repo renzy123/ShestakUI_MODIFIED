@@ -18,6 +18,71 @@ local player_width = C.unitframe.player_width
 local pet_width = (player_width - 7) / 2
 local boss_width = C.unitframe.boss_width
 
+-- 自定义头像更新函数，用于接管 oUF 的 Portrait 渲染，避开对 oUF 核心库的侵入性修改
+local function UpdatePortrait(self, event, unit)
+	if not unit then return end
+
+	local isMatch = false
+	if self.unit == unit then
+		isMatch = true
+	elseif C_Secrets and C_Secrets.CanCompareUnitTokens then
+		local isOk, res = pcall(C_Secrets.CanCompareUnitTokens, self.unit, unit)
+		if isOk then isMatch = res end
+	else
+		local isOk, res = pcall(UnitIsUnit, self.unit, unit)
+		if isOk then isMatch = res end
+	end
+	if not isMatch then return end
+
+	local element = self.Portrait
+	if element.PreUpdate then element:PreUpdate(unit) end
+
+	local guid = UnitGUID(unit)
+	local isAvailable = UnitIsConnected(unit) and (UnitIsVisible(unit) or UnitExists(unit))
+
+	local hasStateChanged = event ~= "OnUpdate"
+		or (not issecretvalue(guid) and not issecretvalue(element.guid) and element.guid ~= guid)
+		or element.state ~= isAvailable
+
+	if hasStateChanged then
+		if element:IsObjectType("PlayerModel") then
+			local shouldFallback2D = not isAvailable
+
+			if shouldFallback2D then
+				element:ClearModel()
+				if element.Icon then
+					element.Icon:Show()
+					element.Icon:SetTexture([[Interface\Buttons\TalkToMeQuestionMark]])
+					element.Icon:SetTexCoord(0.15, 0.85, 0.15, 0.85)
+				end
+			else
+				if element.Icon then element.Icon:Hide() end
+				element:SetCamDistanceScale(1)
+				element:SetPortraitZoom(1)
+				element:SetPosition(0, 0, 0)
+				element:ClearModel()
+				element:SetUnit(unit)
+			end
+		else
+			if element.classIcons then
+				local _, class = UnitClass(self.unit)
+				local texcoord = CLASS_ICON_TCOORDS[class]
+				element.Icon:SetTexCoord(texcoord[1] + 0.015, texcoord[2] - 0.02, texcoord[3] + 0.018, texcoord[4] - 0.02)
+			else
+				SetPortraitTexture(element.Icon, unit)
+				element.Icon:SetTexCoord(0.15, 0.85, 0.15, 0.85)
+			end
+		end
+
+		element.guid = guid
+		element.state = isAvailable
+	end
+
+	if element.PostUpdate then
+		return element:PostUpdate(unit)
+	end
+end
+
 -- Create layout
 local function Shared(self, unit)
 	-- Set our own colors
@@ -86,7 +151,7 @@ local function Shared(self, unit)
 	if C.unitframe.own_color then
 		self.Health.bg:SetVertexColor(unpack(C.unitframe.uf_color_bg))
 	else
-		self.Health.bg.multiplier = 0.2
+		self.Health.bg.multiplier = 0 -- 背景显示为纯黑色
 	end
 
 	-- Health value
@@ -144,13 +209,40 @@ local function Shared(self, unit)
 
 		-- Power bar
 		self.Power = CreateFrame("StatusBar", self:GetName().."_Power", self)
-		if unit == "player" or unit == "target" or unit == "arena" or unit == "boss" then
+		if unit == "player" or unit == "target" then
+			self.backdrop:Hide()
+			self.Health:CreateBackdrop("Default")
+			self.Health:SetFrameLevel(6)
+			if self.Health.backdrop then
+				self.Health.backdrop:SetFrameLevel(5)
+			end
+
+			-- 能量条高度设为 7 并层级在下，与生命值条横向错位重叠（横向偏置 4 像素，形成错落立体视觉效果）
+			self.Power:SetHeight(7 + C.unitframe.extra_power_height)
+			self.Power:ClearAllPoints()
+			if unit == "player" then
+				self.Power:SetPoint("TOPLEFT", self.Health, "BOTTOMLEFT", -4, 2)
+				self.Power:SetPoint("TOPRIGHT", self.Health, "BOTTOMRIGHT", -4, 2)
+			else
+				self.Power:SetPoint("TOPLEFT", self.Health, "BOTTOMLEFT", 4, 2)
+				self.Power:SetPoint("TOPRIGHT", self.Health, "BOTTOMRIGHT", 4, 2)
+			end
+			self.Power:CreateBackdrop("Default")
+			self.Power:SetFrameLevel(4)
+			if self.Power.backdrop then
+				self.Power.backdrop:SetFrameLevel(3)
+			end
+		elseif unit == "arena" or unit == "boss" then
 			self.Power:SetHeight(5 + C.unitframe.extra_power_height)
+			self.Power:SetPoint("TOPLEFT", self.Health, "BOTTOMLEFT", 0, -1)
+			self.Power:SetPoint("TOPRIGHT", self.Health, "BOTTOMRIGHT", 0, -1)
+		elseif unit == "arenatarget" then
+			self.Power:SetHeight(0)
 		else
 			self.Power:SetHeight(2)
+			self.Power:SetPoint("TOPLEFT", self.Health, "BOTTOMLEFT", 0, -1)
+			self.Power:SetPoint("TOPRIGHT", self.Health, "BOTTOMRIGHT", 0, -1)
 		end
-		self.Power:SetPoint("TOPLEFT", self.Health, "BOTTOMLEFT", 0, -1)
-		self.Power:SetPoint("TOPRIGHT", self.Health, "BOTTOMRIGHT", 0, -1)
 		self.Power:SetStatusBarTexture(C.media.texture)
 
 		self.Power.frequentUpdates = true
@@ -240,15 +332,27 @@ local function Shared(self, unit)
 		self.Info = T.SetFontString(self.Health, C.font.unit_frames_font, C.font.unit_frames_font_size, C.font.unit_frames_font_style)
 		self.Info:SetWordWrap(false)
 		if unit ~= "arenatarget" then
-			self.Level = T.SetFontString(self.Power, C.font.unit_frames_font, C.font.unit_frames_font_size, C.font.unit_frames_font_style)
+			if unit == "target" then
+				-- 目标等级文本创建在生命值条上
+				self.Level = T.SetFontString(self.Health, C.font.unit_frames_font, C.font.unit_frames_font_size, C.font.unit_frames_font_style)
+			else
+				self.Level = T.SetFontString(self.Power, C.font.unit_frames_font, C.font.unit_frames_font_size, C.font.unit_frames_font_style)
+			end
 		end
 		if unit == "target" then
-			self.Info:SetPoint("RIGHT", self.Health, "RIGHT", 0, 0)
-			self.Info:SetPoint("LEFT", self.Health.value, "RIGHT", 0, 0)
+			-- 目标等级放置在生命值条最右侧，使用职业颜色
+			self.Level:SetPoint("RIGHT", self.Health, "RIGHT", -4, 0)
+			self:Tag(self.Level, "[GetNameColor][level]")
+
+			-- 目标名字放置在等级的左侧
+			self.Info:ClearAllPoints()
+			self.Info:SetPoint("RIGHT", self.Level, "LEFT", -4, 0)
 			self.Info:SetJustifyH("RIGHT")
-			self:Tag(self.Info, "[GetNameColor][NameLong]")
-			self.Level:SetPoint("RIGHT", self.Power, "RIGHT", 0, 0)
-			self:Tag(self.Level, "[cpoints] [Threat] [DiffColor][level][shortclassification]")
+			self:Tag(self.Info, "[GetNameColor][NameMedium]")
+
+			-- 目标外侧百分比文本放置在左侧外部
+			self.Health.percentage = T.SetFontString(self, C.font.unit_frames_font, C.font.unit_frames_font_size * 2, C.font.unit_frames_font_style)
+			self.Health.percentage:SetPoint("RIGHT", self, "LEFT", -8, 0)
 		elseif unit == "focus" or unit == "pet" then
 			self.Info:SetPoint("LEFT", self.Health, "LEFT", 2, 0)
 			self.Info:SetPoint("RIGHT", self.Health.value, "LEFT", 0, 0)
@@ -307,12 +411,21 @@ local function Shared(self, unit)
 			self.LowMana.Text:SetAlpha(0)
 		end
 
-		-- Combat icon
+		-- Combat icon (战役指示图标，按图片移到左上角)
 		if C.unitframe.icons_combat then
 			self.CombatIndicator = self.Health:CreateTexture(nil, "OVERLAY")
 			self.CombatIndicator:SetSize(14, 14)
-			self.CombatIndicator:SetPoint("TOPRIGHT", 4, 8)
+			self.CombatIndicator:SetPoint("TOPLEFT", -4, 8)
 		end
+
+		-- 玩家等级显示在生命值条左侧，使用职业颜色
+		self.Level = T.SetFontString(self.Health, C.font.unit_frames_font, C.font.unit_frames_font_size, C.font.unit_frames_font_style)
+		self.Level:SetPoint("LEFT", self.Health, "LEFT", 4, 0)
+		self:Tag(self.Level, "[GetNameColor][level]")
+
+		-- 玩家生命百分比显示在框体右侧外部
+		self.Health.percentage = T.SetFontString(self, C.font.unit_frames_font, C.font.unit_frames_font_size * 2, C.font.unit_frames_font_style)
+		self.Health.percentage:SetPoint("LEFT", self, "RIGHT", 8, 0)
 
 		-- Resting icon
 		if C.unitframe.icons_resting then
@@ -838,13 +951,26 @@ local function Shared(self, unit)
 				end
 			end
 
+			-- 接管 oUF 的 Portrait 渲染，避免地下城环境中加密 Token 拦截头像更新，并且实现 2D 材质头像降级回退
+			self.Portrait.Override = UpdatePortrait
+
 			if C.unitframe.portrait_type == "OVERLAY" then
-				local healthTex = self.Health:GetStatusBarTexture()
+				if not self.PortraitWrapper then
+					self.PortraitWrapper = CreateFrame("Frame", self:GetName().."_PortraitWrapper", self.Health)
+					self.PortraitWrapper:SetPoint("TOPLEFT", self.Health, "TOPLEFT", 0, 0)
+					self.PortraitWrapper:SetPoint("BOTTOMLEFT", self.Health, "BOTTOMLEFT", 0, 0)
+					self.PortraitWrapper:SetPoint("RIGHT", self.Health:GetStatusBarTexture(), "RIGHT", 0, 0)
+					self.PortraitWrapper:SetClipsChildren(true)
+				end
+
+				self.Portrait:SetParent(self.PortraitWrapper)
 				self.Portrait:ClearAllPoints()
-				self.Portrait:SetPoint("TOPLEFT", healthTex, "TOPLEFT", 0, 0)
-				self.Portrait:SetPoint("BOTTOMRIGHT", healthTex, "BOTTOMRIGHT", 0, 1)
-				self.Portrait:SetFrameLevel(self.Health:GetFrameLevel())
-				self.Portrait.backdrop:Hide()
+				self.Portrait:SetPoint("TOPLEFT", self.Health, "TOPLEFT", 0, 0)
+				self.Portrait:SetPoint("BOTTOMRIGHT", self.Health, "BOTTOMRIGHT", 0, 0)
+				self.Portrait:SetFrameLevel(self.Health:GetFrameLevel() + 1)
+				if self.Portrait.backdrop then
+					self.Portrait.backdrop:Hide()
+				end
 				self.Portrait:SetAlpha(0.5)
 			end
 		end

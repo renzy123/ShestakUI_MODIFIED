@@ -31,20 +31,9 @@ local function CreateButton(element, options, button)
 	button.Icon = icon
 	button:SetIcon(icon)
 
-	local textParent
-	if((options.showCount or element.showCount) or (options.showDuration or element.showDuration)) then
-		if(options.disableCooldown or element.disableCooldown) then
-			textParent = button
-		else
-			-- raise frame level to render text above cooldown
-			textParent = CreateFrame('Frame', nil, button)
-			textParent:SetAllPoints()
-			textParent:SetFrameLevel(button.Cooldown:GetFrameLevel() + 1)
-		end
-	end
-
 	if(options.showCount or element.showCount) then
-		local count = textParent:CreateFontString(nil, 'OVERLAY', 'NumberFontNormal')
+		local count = button:CreateFontString(nil, 'OVERLAY', 'NumberFontNormal')
+		count:SetDrawLayer('OVERLAY', 7)
 		count:SetPoint('BOTTOMRIGHT', -1, 0)
 		button.Count = count
 		button:SetApplicationCount(count, {
@@ -92,7 +81,8 @@ local function CreateButton(element, options, button)
 	end
 
 	if(options.showDuration or element.showDuration) then
-		local time = textParent:CreateFontString(nil, 'OVERLAY', 'NumberFontNormal')
+		local time = button:CreateFontString(nil, 'OVERLAY', 'NumberFontNormal')
+		time:SetDrawLayer('OVERLAY', 7)
 		time:SetPoint('TOPLEFT', 1, 0) -- TBD
 		button.Time = time
 		button:SetDurationText(time, {

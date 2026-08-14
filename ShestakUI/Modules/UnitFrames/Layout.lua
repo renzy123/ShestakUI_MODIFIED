@@ -22,14 +22,15 @@ local boss_width = C.unitframe.boss_width
 local function UpdatePortrait(self, event, unit)
 	if not unit then return end
 
+	local currentUnit = self.__unit or self.unit
 	local isMatch = false
-	if self.unit == unit then
+	if currentUnit == unit then
 		isMatch = true
 	elseif C_Secrets and C_Secrets.CanCompareUnitTokens then
-		local isOk, res = pcall(C_Secrets.CanCompareUnitTokens, self.unit, unit)
+		local isOk, res = pcall(C_Secrets.CanCompareUnitTokens, currentUnit, unit)
 		if isOk then isMatch = res end
 	else
-		local isOk, res = pcall(UnitIsUnit, self.unit, unit)
+		local isOk, res = pcall(UnitIsUnit, currentUnit, unit)
 		if isOk then isMatch = res end
 	end
 	if not isMatch then return end
@@ -955,23 +956,13 @@ local function Shared(self, unit)
 			self.Portrait.Override = UpdatePortrait
 
 			if C.unitframe.portrait_type == "OVERLAY" then
-				if not self.PortraitWrapper then
-					self.PortraitWrapper = CreateFrame("Frame", self:GetName().."_PortraitWrapper", self.Health)
-					self.PortraitWrapper:SetPoint("TOPLEFT", self.Health, "TOPLEFT", 0, 0)
-					self.PortraitWrapper:SetPoint("BOTTOMLEFT", self.Health, "BOTTOMLEFT", 0, 0)
-					self.PortraitWrapper:SetPoint("RIGHT", self.Health:GetStatusBarTexture(), "RIGHT", 0, 0)
-					self.PortraitWrapper:SetClipsChildren(true)
-				end
-
-				self.Portrait:SetParent(self.PortraitWrapper)
 				self.Portrait:ClearAllPoints()
-				self.Portrait:SetPoint("TOPLEFT", self.Health, "TOPLEFT", 0, 0)
-				self.Portrait:SetPoint("BOTTOMRIGHT", self.Health, "BOTTOMRIGHT", 0, 0)
+				self.Portrait:SetAllPoints(self.Health)
 				self.Portrait:SetFrameLevel(self.Health:GetFrameLevel() + 1)
 				if self.Portrait.backdrop then
 					self.Portrait.backdrop:Hide()
 				end
-				self.Portrait:SetAlpha(0.5)
+				self.Portrait:SetAlpha(0.35)
 			end
 		end
 

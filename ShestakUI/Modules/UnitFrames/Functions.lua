@@ -362,8 +362,8 @@ T.PostUpdatePower = function(power, unit, cur, _, max)
 
 	if not power.value then return end
 
-	-- 根据 config 设置判定：若 show_player_power 为 false，则不在玩家框体上显示能量/法力数值
-	if unit == "player" and C.unitframe.show_player_power ~= true then
+	-- 根据样式规范：玩家框体（根据配置）与目标框体均不显示具体的能量/法力数值文本
+	if (unit == "player" and C.unitframe.show_player_power ~= true) or unit == "target" then
 		power.value:SetText("")
 		if power.short_value then
 			power.short_value:SetText("")

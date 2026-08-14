@@ -1,351 +1,763 @@
 local _, ns = ...
 local oUF = ns.oUF
 
-local Private = oUF.Private
-local argcheck = Private.argcheck
+local function UpdateTooltip(self)
+	if(GameTooltip:IsForbidden()) then return end
 
-local STATE = {}
-
-local function CreateButton(element, options, button)
-	local size = options.size or element.size or 16
-	local width = options.width or element.width or size
-	local height = options.height or element.height or size
-	button:SetSize(width, height)
-	button:EnableMouse(not (options.disableMouse or element.disableMouse))
-
-	local tooltipAnchor = options.tooltipAnchor or element.tooltipAnchor or 'ANCHOR_BOTTOMLEFT'
-	local tooltipOffsetX = options.tooltipOffsetX or element.tooltipOffsetX or 0
-	local tooltipOffsetY = options.tooltipOffsetY or element.tooltipOffsetY or 0
-	button:SetTooltipAnchorPoint(tooltipAnchor, tooltipOffsetX, tooltipOffsetY)
-	button:SetHideTooltipInCombat(options.tooltipHideInCombat or element.tooltipHideInCombat)
-
-	if(not (options.disableCooldown or element.disableCooldown)) then
-		local cooldown = CreateFrame('Cooldown', '$parentCooldown', button, 'CooldownFrameTemplate')
-		cooldown:SetAllPoints()
-		button.Cooldown = cooldown
-		button:SetDurationCooldown(cooldown)
+	if(self.isHarmful) then
+		GameTooltip:SetUnitDebuffByAuraInstanceID(self:GetParent().__owner.unit, self.auraInstanceID)
+	else
+		GameTooltip:SetUnitBuffByAuraInstanceID(self:GetParent().__owner.unit, self.auraInstanceID)
 	end
+end
+
+local function onEnter(self)
+	if(GameTooltip:IsForbidden() or not self:IsVisible()) then return end
+
+	-- Avoid parenting GameTooltip to frames with anchoring restrictions,
+	-- otherwise it'll inherit said restrictions which will cause issues with
+	-- its further positioning, clamping, etc
+	GameTooltip:SetOwner(self, self:GetParent().__restricted and 'ANCHOR_CURSOR' or self:GetParent().tooltipAnchor)
+	self:UpdateTooltip()
+end
+
+local function onLeave()
+	if(GameTooltip:IsForbidden()) then return end
+
+	GameTooltip:Hide()
+end
+
+local function CreateButton(element, index)
+	local button = CreateFrame('Button', element:GetDebugName() .. 'Button' .. index, element)
+
+	local cd = CreateFrame('Cooldown', '$parentCooldown', button, 'CooldownFrameTemplate')
+	cd:SetAllPoints()
+	cd:SetDrawEdge(false) -- ShestakUI
+	button.Cooldown = cd
 
 	local icon = button:CreateTexture(nil, 'BORDER')
 	icon:SetAllPoints()
 	button.Icon = icon
-	button:SetIcon(icon)
 
-	if(options.showCount or element.showCount) then
-		local count = button:CreateFontString(nil, 'OVERLAY', 'NumberFontNormal')
-		count:SetDrawLayer('OVERLAY', 7)
-		count:SetPoint('BOTTOMRIGHT', -1, 0)
-		button.Count = count
-		button:SetApplicationCount(count, {
-			formatter = options.countFormatter or element.countFormatter,
-		})
-	end
+	local countFrame = CreateFrame('Frame', nil, button)
+	countFrame:SetAllPoints(button)
+	countFrame:SetFrameLevel(cd:GetFrameLevel() + 1)
 
-	if((options.showBuffBorder or element.showBuffBorder) or (options.showDebuffBorder or element.showDebuffBorder)) then
-		local border = button:CreateTexture(nil, 'OVERLAY')
-		border:SetAllPoints()
-		button.Border = border
-		button:AddDispelTypeTexture(border, {
-			style = options.dispelBorderStyle or element.dispelBorderStyle or Enum.CustomAuraButtonDispelTypeTextureStyle.Border,
-			showWhenHarmful = options.showDebuffBorder or element.showDebuffBorder,
-			showWhenHelpful = options.showBuffBorder or element.showBuffBorder,
-			customDispelColorMap = element.__owner.colors.dispel,
-		})
-	end
+	local count = countFrame:CreateFontString(nil, 'OVERLAY', 'NumberFontNormal')
+	count:SetPoint('BOTTOMRIGHT', countFrame, 'BOTTOMRIGHT', -1, 0)
+	button.Count = count
 
-	if((options.showDebuffIndicator or element.showDebuffIndicator) or (options.showBuffIndicator or element.showBuffIndicator)) then
-		local dispelIndicator = button:CreateTexture(nil, 'OVERLAY', nil, 1) -- above other overlay widgets
-		dispelIndicator:SetPoint('CENTER', button, 'TOPRIGHT')
-		dispelIndicator:SetSize(18, 18)
-		button.DispelIndicator = dispelIndicator
-		button:AddDispelTypeTexture(dispelIndicator, {
-			style = Enum.CustomAuraButtonDispelTypeTextureStyle.Icon,
-			showWhenHarmful = options.showDebuffIndicator or element.showDebuffIndicator,
-			showWhenHelpful = options.showBuffIndicator or element.showBuffIndicator,
-		})
-	end
+	local overlay = button:CreateTexture(nil, 'OVERLAY')
+	overlay:SetTexture([[Interface\Buttons\UI-Debuff-Overlays]])
+	overlay:SetAllPoints()
+	overlay:SetTexCoord(0.296875, 0.5703125, 0, 0.515625)
+	button.Overlay = overlay
 
-	if(options.showStealableBorder or element.showStealableBorder) then
-		local stealable = button:CreateTexture(nil, 'OVERLAY')
-		stealable:SetPoint('TOPLEFT', -3, 3)
-		stealable:SetPoint('BOTTOMRIGHT', 3, -3)
-		stealable:SetTexture([[Interface\TargetingFrame\UI-TargetingFrame-Stealable]])
-		stealable:SetBlendMode('ADD')
-		button.Stealable = stealable
-		button:AddDispelTypeTexture(stealable, {
-			style = Enum.CustomAuraButtonDispelTypeTextureStyle.PreserveAsset, -- since we use a texture
-			showWhenHelpful = true, -- this is required for stealableFilter option
-			showWithoutDispelType = true, -- this is _probably_ required for stealableFilter option
-			stealableFilter = options.stealableBorderFilter or element.stealableBorderFilter or Enum.CustomAuraButtonDispelTypeStealableFilter.Stealable
-		})
-	end
+	local stealable = button:CreateTexture(nil, 'OVERLAY')
+	stealable:SetTexture([[Interface\TargetingFrame\UI-TargetingFrame-Stealable]])
+	stealable:SetPoint('TOPLEFT', -3, 3)
+	stealable:SetPoint('BOTTOMRIGHT', 3, -3)
+	stealable:SetBlendMode('ADD')
+	button.Stealable = stealable
 
-	if(options.showDuration or element.showDuration) then
-		local time = button:CreateFontString(nil, 'OVERLAY', 'NumberFontNormal')
-		time:SetDrawLayer('OVERLAY', 7)
-		time:SetPoint('TOPLEFT', 1, 0) -- TBD
-		button.Time = time
-		button:SetDurationText(time, {
-			binding = options.durationBinding or element.durationBinding,
-			textFormatter = options.durationFormatter or element.durationFormatter,
-			textFormat = options.durationFormat or element.durationFormat,
-			textColor = options.durationColors or element.durationColors,
-		})
-	end
-
-	if(options.cancelButton or element.cancelButton) then
-		button:SetCancelAuraButtons(options.cancelButton or element.cancelButton)
-	end
+	button.UpdateTooltip = UpdateTooltip
+	button:SetScript('OnEnter', onEnter)
+	button:SetScript('OnLeave', onLeave)
 
 	--[[ Callback: Auras:PostCreateButton(button)
 	Called after a new aura button has been created.
 
-	* self    - the element used to represent the aura buttons
-	* button  - the aura button (AuraButton)
-	* options - the aura group/slot options passed through to CreateButton (table)
+	* self   - the widget holding the aura buttons
+	* button - the newly created aura button (Button)
 	--]]
-	if(element.PostCreateButton) then element:PostCreateButton(button, options) end
+	if(element.PostCreateButton) then element:PostCreateButton(button) end
+
+	return button
 end
 
-local elementMixin = {}
---[[ Auras: auras:AddGroup(filter[, options])
-Defines a group of auras to display on the element.
-This can be defined multiple times.
+local function SetPosition(element, from, to)
+	local width = element.width or element.size or 16
+	local height = element.height or element.size or 16
+	local sizex = width + (element['spacing-x'] or element.spacing or 0)
+	local sizey = height + (element['spacing-y'] or element.spacing or 0)
+	local anchor = element.initialAnchor or 'BOTTOMLEFT'
+	local growthx = (element['growth-x'] == 'LEFT' and -1) or 1
+	local growthy = (element['growth-y'] == 'DOWN' and -1) or 1
+	local cols = math.floor(element:GetWidth() / sizex + 0.5)
 
-* filter  - aura filter for this group ([AuraFilter](https://warcraft.wiki.gg/wiki/API_types/AuraFilters))
-* options - options for this group ([CustomAuraContainerGroupDefaultOptions](https://warcraft.wiki.gg/wiki/FrameXML_types/CustomAuraContainerGroupDefaultOptions))
+	for i = from, to do
+		local button = element[i]
+		if(not button) then break end
 
-## Notes
+		local col = (i - 1) % cols
+		local row = math.floor((i - 1) / cols)
 
-* Many of the options will fall back to element-wide options unless specified.
-* All of the button-specific options can be set in the group options to override the
-element-provided values
-* The groupKey is an arbitrary string used to identify the aura group after creation, and is derived
-from the element's inherited name, suffixed by a growing integer.
-
-## Returns
-
-* groupKey - unique identifier for this specific aura group (string)
---]]
-function elementMixin:AddGroup(filter, options)
-	argcheck(filter, 2, 'string')
-	argcheck(options, 3, 'table', 'nil')
-
-	-- we use this to pad the options provided (if any) with familiar defaults from
-	-- element attributes like we've been doing for years.
-	if(not options) then
-		options = {}
+		button:ClearAllPoints()
+		button:SetPoint(anchor, element, anchor, col * sizex * growthx, row * sizey * growthy)
 	end
+end
 
-	-- attributes inherited from the element
-	options.maxFrameCount = options.maxFrameCount or self.maxFrameCount
+local function updateAura(element, unit, data, position)
+	if(not data.name) then return end
 
-	-- 动态同步 FlowLayout 参数到底层 AuraContainer
-	if self.initialAnchor and self.SetFlowLayoutAnchorPoint then
-		self:SetFlowLayoutAnchorPoint(self.initialAnchor)
-	end
+	local button = element[position]
+	if(not button) then
+		--[[ Override: Auras:CreateButton(position)
+		Used to create an aura button at a given position.
 
-	local maxLineSize = self.layoutLimit or (self.__owner and self.__owner:GetWidth()) or 0
-	if maxLineSize > 0 and self.SetFlowLayoutMaximumLineSize then
-		self:SetFlowLayoutMaximumLineSize(maxLineSize)
-	end
+		* self     - the widget holding the aura buttons
+		* position - the position at which the aura button is to be created (number)
 
-	if (self.growthX or self.growthY) and self.SetFlowLayoutGrowthDirection then
-		local growthX = (self.growthX == "LEFT" and -1) or 1
-		local growthY = (self.growthY == "DOWN" and -1) or 1
-		self:SetFlowLayoutGrowthDirection(growthX, growthY)
-	end
+		## Returns
 
-	-- layout attributes inherited from the element
-	local layout = options.layout or {}
-	layout.elementSpacing = layout.elementSpacing or self.elementSpacing or 3
-	layout.lineSpacing = layout.lineSpacing or self.lineSpacing or 3
-	layout.groupSpacing = layout.groupSpacing or self.groupSpacing or 3
-	layout.groupLineSpacing = layout.groupLineSpacing or self.groupLineSpacing or 3
-	layout.forceNewLine = layout.forceNewLine or self.forceNewLine
-	options.layout = layout
-
-	-- some nice shorthands for stuff that might be shared across groups, with more familiar defaults
-	options.sortMethod = options.sortMethod or self.sortMethod or AuraContainerSortMethod.ExpirationOnly
-	options.sortDirection = options.sortDirection or self.sortDirection or AuraContainerSortDirection.Normal
-
-	if(not options.initializeFrame) then
-		-- we want to provide a default set of widgets for buttons, and we load it late so we can
-		-- pass group-specific options to it
-
-		--[[ Override: Auras:CreateButton(options, button)
-		Used to initialize an aura button.
-
-		* self    - the element used to represent the aura buttons
-		* options - options passed through from auras:AddGroup and auras:AddSlot
-		* button  - the aura button (AuraButton)
+		* button - the button used to represent the aura (Button)
 		--]]
-		options.initializeFrame = GenerateClosure(options.CreateButton or self.CreateButton or CreateButton, self, options)
+		button = (element.CreateButton or CreateButton) (element, position)
+
+		table.insert(element, button)
+		element.createdButtons = element.createdButtons + 1
 	end
 
-	-- keep track of how many groups we've created, for key generation purposes
-	local frame = self.__owner
-	STATE[frame].groupIndex = STATE[frame].groupIndex + 1
+	-- for tooltips
+	button.auraInstanceID = data.auraInstanceID
+	button.isHarmful = data.isHarmful
 
-	local key = 'Group' .. STATE[frame].groupIndex
-	self:AddAuraGroup(key, filter, options)
-
-	return key
-end
-
---[[ Auras: auras:AddSlot(filter[, options])
-Defines a slot for a single buff or debuff to create from the element.
-The slot can be manually positioned if necessary.
-This can be defined multiple times.
-
-* filter  - aura filter for this group ([AuraFilter](https://warcraft.wiki.gg/wiki/API_types/AuraFilters))
-* options - options for this group ([CustomAuraContainerSlotDefaultOptions](https://warcraft.wiki.gg/wiki/FrameXML_types/CustomAuraContainerSlotDefaultOptions))
-
-## Notes
-
-* Many of the options will fall back to element-wide options unless specified.
-* All of the button-specific options can be set in the group options to override the
-element-provided values
-* Slots will be automatically positioned with each other, this can be overridden with ClearAllPoints
-and SetPoint.
-* The slotKey is an arbitrary string used to identify the aura slot after creation, and is derived
-from the element's inherited name, suffixed by a growing integer.
-
-## Returns
-
-* slotKey - unique identifier for this specific aura slot (string)
---]]
-function elementMixin:AddSlot(filter, options)
-	argcheck(filter, 2, 'string')
-	argcheck(options, 3, 'table', 'nil')
-
-	-- we use this to pad the options provided (if any) with familiar defaults from
-	-- element attributes like we've been doing for years.
-	if(not options) then
-		options = {}
-	end
-
-	if(not options.initializeFrame) then
-		-- we want to provide a default set of widgets for buttons
-		options.initializeFrame = GenerateClosure(options.CreateButton or self.CreateButton or CreateButton, self, options)
-	end
-
-	-- keep track of how many groups we've created, for key generation purposes
-	local frame = self.__owner
-	STATE[frame].slotIndex = STATE[frame].slotIndex + 1
-
-	local key = 'Slot' .. STATE[frame].slotIndex
-	self:AddAuraSlot(key, filter, options)
-
-	return key
-end
-
---[[ Auras: auras:ForceUpdate()
-Forcefully update all auras within groups and slots on the element.
---]]
-function elementMixin:ForceUpdate()
-	self:UpdateAllAuras()
-end
-
---[[ Auras: frame:CreateAuras([options])
-Create and return a aura element.
-
-* self     - the unit frame on which to create the element
-* options  - extra options to provide to the element
-
-## Options
-
-All of these options are provided as a convenience, and can be applied after creation through
-methods on the element.
-
-.layout        - Which way to layout groups. Defaults to AnchorUtil.FlowLayoutAxis.Horizontal (number?)
-.layoutLimit   - Max width or height of the element, depending on the layout. Defaults to the parent width or height (number?)
-.initialAnchor - Anchor point for the element. Defaults to 'TOPLEFT' (string?)
-.growthX       - Horizontal growth direction. Defaults to 'RIGHT' (string?)
-.growthY       - Vertical growth direction. Defaults to 'UP' (string?)
-.padding       - Padding around the element. Defaults to 0 (number?)
-.paddingLeft   - Padding on the left side of the element. Takes priority over `padding` (number?)
-.paddingRight  - Padding on the right side of the element. Takes priority over `padding` (number?)
-.paddingTop    - Padding on the top side of the element. Takes priority over `padding` (number?)
-.paddingBottom - Padding on the bottom side of the element. Takes priority over `padding` (number?)
-.policy        - Policy for how auras should be processed. See [CustomAuraContainerProcessAuraPolicyDefaultOptions](https://warcraft.wiki.gg/wiki/FrameXML_types/CustomAuraContainerProcessAuraPolicyDefaultOptions) (table?)
-.templates     - Extra templates to use for the aura element (string?)
-
-## Returns
-
-* auras - the element used to represent the aura buttons
---]]
-local function Create(self, options)
-	-- keep a local state of elements created for each frame
-	if(not STATE[self]) then
-		STATE[self] = {
-			index = 0,
-			elements = {},
-			groupIndex = 0,
-			slotIndex = 0,
-		}
-	end
-
-	local templates = 'CustomAuraContainerTemplate'
-	if(options and options.templates) then
-		templates = templates .. ',' .. options.templates
-	end
-
-	STATE[self].index = STATE[self].index + 1
-	local element = CreateFrame('AuraContainer', '$parentAuras' .. STATE[self].index, self, templates)
-	STATE[self].elements[STATE[self].index] = element
-
-	element.__owner = self
-
-	if(options) then
-		-- element-wide options we'll just set directly from options
-		element:SetFlowLayoutAnchorPoint(options.initialAnchor or 'TOPLEFT')
-
-		if(options.layout) then
-			element:SetFlowLayoutAxis(options.layout)
-		end
-
-		if(options.layout == AnchorUtil.FlowLayoutAxis.Vertical) then
-			element:SetFlowLayoutMaximumLineSize(options.layoutLimit or self:GetHeight())
+	if(button.Cooldown and not element.disableCooldown) then
+		if(data.duration > 0) then
+			button.Cooldown:SetCooldown(data.expirationTime - data.duration, data.duration, data.timeMod)
+			button.Cooldown:Show()
 		else
-			element:SetFlowLayoutMaximumLineSize(options.layoutLimit or self:GetWidth())
-		end
-
-		local growthX = (options.growthX == 'LEFT' and -1) or 1
-		local growthY = (options.growthY == 'DOWN' and -1) or 1
-		element:SetFlowLayoutGrowthDirection(growthX, growthY)
-
-		local paddingLeft = options.paddingLeft or options.padding or 0
-		local paddingRight = options.paddingRight or options.padding or 0
-		local paddingTop = options.paddingTop or options.padding or 0
-		local paddingBottom = options.paddingBottom or options.padding or 0
-		element:SetFlowLayoutPadding(paddingLeft, paddingRight, paddingTop, paddingBottom)
-
-		if(options.policy) then
-			-- just expose it easily for layouts in case they want to use it
-			element:SetAuraProcessingPolicy(CustomAuraContainerAuraProcessingPolicy.ProcessAura, options.policy)
+			button.Cooldown:Hide()
 		end
 	end
 
-	return Mixin(element, elementMixin)
+	if(button.Overlay) then
+		if((data.isHarmful and element.showDebuffType) or (not data.isHarmful and element.showBuffType) or element.showType) then
+			local color = element.__owner.colors.debuff[data.dispelName] or element.__owner.colors.debuff.none
+
+			button.Overlay:SetVertexColor(color[1], color[2], color[3])
+			button.Overlay:Show()
+		else
+			button.Overlay:Hide()
+		end
+	end
+
+	if(button.Stealable) then
+		if(not data.isHarmful and data.isStealable and element.showStealableBuffs and not UnitIsUnit('player', unit)) then
+			button.Stealable:Show()
+		else
+			button.Stealable:Hide()
+		end
+	end
+
+	if(button.Icon) then button.Icon:SetTexture(data.icon) end
+	if(button.Count) then button.Count:SetText(data.applications > 1 and data.applications or '') end
+
+	local width = element.width or element.size or 16
+	local height = element.height or element.size or 16
+	button:SetSize(width, height)
+	button:EnableMouse(not element.disableMouse)
+	button:Show()
+
+	--[[ Callback: Auras:PostUpdateButton(unit, button, data, position)
+	Called after the aura button has been updated.
+
+	* self     - the widget holding the aura buttons
+	* button   - the updated aura button (Button)
+	* unit     - the unit on which the aura is cast (string)
+	* data     - the [UnitAuraInfo](https://wowpedia.fandom.com/wiki/Struct_UnitAuraInfo) object (table)
+	* position - the actual position of the aura button (number)
+	--]]
+	if(element.PostUpdateButton) then
+		element:PostUpdateButton(button, unit, data, position)
+	end
 end
 
-local function Update(self)
-	if(STATE[self] and STATE[self].elements) then
-		for _, element in next, STATE[self].elements do
-			if element:GetUnit() ~= self.__unit then
-				element:SetUnit(self.__unit) -- triggers a full update
-			else
-				element:ForceUpdate()
+local function FilterAura(element, unit, data)
+	if((element.onlyShowPlayer and data.isPlayerAura) or (not element.onlyShowPlayer and data.name)) then
+		return true
+	end
+end
+
+-- see AuraUtil.DefaultAuraCompare
+local function SortAuras(a, b)
+	if(a.isPlayerAura ~= b.isPlayerAura) then
+		return a.isPlayerAura
+	end
+
+	if(a.canApplyAura ~= b.canApplyAura) then
+		return a.canApplyAura
+	end
+
+	return a.auraInstanceID < b.auraInstanceID
+end
+
+local function processData(data)
+	if(not data) then return end
+
+	data.isPlayerAura = data.sourceUnit and (UnitIsUnit('player', data.sourceUnit) or UnitIsOwnerOrControllerOfUnit('player', data.sourceUnit))
+
+	return data
+end
+
+local function UpdateAuras(self, event, unit, updateInfo)
+	if(self.unit ~= unit) then return end
+
+	local auras = self.Auras
+	if(auras) then
+		--[[ Callback: Auras:PreUpdate(unit)
+		Called before the element has been updated.
+
+		* self - the widget holding the aura buttons
+		* unit - the unit for which the update has been triggered (string)
+		--]]
+		if(auras.PreUpdate) then auras:PreUpdate(unit) end
+
+		local buffsChanged = false
+		local numBuffs = auras.numBuffs or 32
+		local buffFilter = auras.buffFilter or auras.filter or 'HELPFUL'
+		if(type(buffFilter) == 'function') then
+			buffFilter = buffFilter(auras, unit)
+		end
+
+		local debuffsChanged = false
+		local numDebuffs = auras.numDebuffs or 40
+		local debuffFilter = auras.debuffFilter or auras.filter or 'HARMFUL'
+		if(type(debuffFilter) == 'function') then
+			debuffFilter = debuffFilter(auras, unit)
+		end
+
+		local numTotal = auras.numTotal or numBuffs + numDebuffs
+
+		if(not updateInfo or updateInfo.isFullUpdate) then
+			auras.activeBuffs = table.wipe(auras.activeBuffs or {})
+			auras.sortedBuffs = table.wipe(auras.sortedBuffs or {})
+			numBuffs = math.min(numBuffs, numTotal)
+			buffsChanged = true
+
+			local slots = {UnitAuraSlots(unit, buffFilter)}
+			if(slots[2]) then -- #1 return is continuationToken, we don't care about it
+				local count = 1
+
+				for i = 2, #slots do
+					if count <= numBuffs then
+						local data = processData(C_UnitAuras.GetAuraDataBySlot(unit, slots[i]))
+
+						--[[ Override: Auras:FilterAura(unit, data)
+						Defines a custom filter that controls if the aura button should be shown.
+
+						* self - the widget holding the aura buttons
+						* unit - the unit on which the aura is cast (string)
+						* data - [UnitAuraInfo](https://wowpedia.fandom.com/wiki/Struct_UnitAuraInfo) object (table)
+
+						## Returns
+
+						* show - indicates whether the aura button should be shown (boolean)
+						--]]
+						if((auras.FilterAura or FilterAura) (auras, unit, data)) then
+							auras.activeBuffs[data.auraInstanceID] = data
+
+							table.insert(auras.sortedBuffs, data)
+
+							count = count + 1
+						end
+					end
+				end
+			end
+
+			auras.activeDebuffs = table.wipe(auras.activeDebuffs or {})
+			auras.sortedDebuffs = table.wipe(auras.sortedDebuffs or {})
+			numDebuffs = math.min(numDebuffs, numTotal - #auras.sortedBuffs)
+			debuffsChanged = true
+
+			slots = {UnitAuraSlots(unit, debuffFilter)}
+			if(slots[2]) then -- #1 return is continuationToken, we don't care about it
+				local count = 1
+
+				for i = 2, #slots do
+					if(count <= numDebuffs) then
+						local data = processData(C_UnitAuras.GetAuraDataBySlot(unit, slots[i]))
+						if((auras.FilterAura or FilterAura) (auras, unit, data)) then
+							auras.activeDebuffs[data.auraInstanceID] = data
+
+							table.insert(auras.sortedDebuffs, data)
+
+							count = count + 1
+						end
+					end
+				end
+			end
+		else
+			if(updateInfo.updatedAuraInstanceIDs) then
+				for _, auraInstanceID in next, updateInfo.updatedAuraInstanceIDs do
+					if(auras.activeBuffs[auraInstanceID]) then
+						auras.activeBuffs[auraInstanceID] = processData(C_UnitAuras.GetAuraDataByAuraInstanceID(unit, auraInstanceID))
+						buffsChanged = true
+					elseif(auras.activeDebuffs[auraInstanceID]) then
+						auras.activeDebuffs[auraInstanceID] = processData(C_UnitAuras.GetAuraDataByAuraInstanceID(unit, auraInstanceID))
+						debuffsChanged = true
+					end
+				end
+			end
+
+			local buffCount = #auras.sortedBuffs
+			local debuffCount = #auras.sortedDebuffs
+
+			if(updateInfo.removedAuraInstanceIDs) then
+				for _, auraInstanceID in next, updateInfo.removedAuraInstanceIDs do
+					if(auras.activeBuffs[auraInstanceID]) then
+						auras.activeBuffs[auraInstanceID] = nil
+						buffCount = buffCount - 1
+						buffsChanged = true
+					elseif(auras.activeDebuffs[auraInstanceID]) then
+						auras.activeDebuffs[auraInstanceID] = nil
+						debuffCount = debuffCount - 1
+						debuffsChanged = true
+					end
+				end
+			end
+
+			numBuffs = math.min(numBuffs, numTotal)
+
+			if(updateInfo.addedAuras) then
+				for _, data in next, updateInfo.addedAuras do
+					if(data.isHelpful and not C_UnitAuras.IsAuraFilteredOutByInstanceID(unit, data.auraInstanceID, buffFilter)) then
+						-- only try to add new auras if we have enough room for them
+						if(buffCount <= numBuffs) then
+							data = processData(data)
+							if((auras.FilterAura or FilterAura) (auras, unit, data)) then
+								auras.activeBuffs[data.auraInstanceID] = data
+								buffCount = buffCount + 1
+								buffsChanged = true
+							end
+						end
+					elseif(data.isHarmful and not C_UnitAuras.IsAuraFilteredOutByInstanceID(unit, data.auraInstanceID, debuffFilter)) then
+						-- only try to add new auras if we have enough room for them
+						if(debuffCount <= math.min(numDebuffs, numTotal - buffCount)) then
+							data = processData(data)
+							if((auras.FilterAura or FilterAura) (auras, unit, data)) then
+								auras.activeDebuffs[data.auraInstanceID] = data
+								debuffCount = debuffCount + 1
+								debuffsChanged = true
+							end
+						end
+					end
+				end
+			end
+
+			-- instead of removing auras one by one, just wipe the tables entirely
+			-- and repopulate them, multiple table.remove calls are insanely slow
+			if(buffsChanged) then
+				auras.sortedBuffs = table.wipe(auras.sortedBuffs or {})
+
+				for _, data in next, auras.activeBuffs do
+					table.insert(auras.sortedBuffs, data)
+				end
+
+				--[[ Override: Auras:SortBuffs(a, b)
+				Defines a custom sorting alorithm for ordering the auras.
+
+				Defaults to [AuraUtil.DefaultAuraCompare](https://github.com/Gethe/wow-ui-source/search?q=DefaultAuraCompare).
+				--]]
+				--[[ Override: Auras:SortAuras(a, b)
+				Defines a custom sorting alorithm for ordering the auras.
+
+				Defaults to [AuraUtil.DefaultAuraCompare](https://github.com/Gethe/wow-ui-source/search?q=DefaultAuraCompare).
+
+				Overridden by the more specific SortBuffs and/or SortDebuffs overrides if they are defined.
+				--]]
+				table.sort(auras.sortedBuffs, auras.SortBuffs or auras.SortAuras or SortAuras)
+			end
+
+			if(debuffsChanged) then
+				auras.sortedDebuffs = table.wipe(auras.sortedDebuffs or {})
+
+				for _, data in next, auras.activeDebuffs do
+					table.insert(auras.sortedDebuffs, data)
+				end
+
+				--[[ Override: Auras:SortDebuffs(a, b)
+				Defines a custom sorting alorithm for ordering the auras.
+
+				Defaults to [AuraUtil.DefaultAuraCompare](https://github.com/Gethe/wow-ui-source/search?q=DefaultAuraCompare).
+				--]]
+				table.sort(auras.sortedDebuffs, auras.SortDebuffs or auras.SortAuras or SortAuras)
 			end
 		end
+
+		if(not (buffsChanged or debuffsChanged)) then return end
+
+		if(buffsChanged) then
+			for i = 1, #auras.sortedBuffs do
+				updateAura(auras, unit, auras.sortedBuffs[i], i)
+			end
+		end
+
+		local offset = #auras.sortedBuffs
+
+		if(auras.gap and #auras.sortedDebuffs > 0 and #auras.sortedBuffs > 0) then
+			offset = offset + 1
+
+			local button = auras[offset]
+			if(not button) then
+				button = (auras.CreateButton or CreateButton) (auras, offset)
+				table.insert(auras, button)
+				auras.createdButtons = auras.createdButtons + 1
+			end
+
+			-- Prevent the button from displaying anything.
+			if(button.Cooldown) then button.Cooldown:Hide() end
+			if(button.Icon) then button.Icon:SetTexture() end
+			if(button.Overlay) then button.Overlay:Hide() end
+			if(button.Stealable) then button.Stealable:Hide() end
+			if(button.Count) then button.Count:SetText("") end
+
+			button:EnableMouse(false)
+			button:Hide()	-- ShestakUI
+
+			--[[ Callback: Auras:PostUpdateGapButton(unit, gapButton, offset)
+			Called after an invisible aura button has been created. Only used by Auras when the `gap` option is enabled.
+
+			* self      - the widget holding the aura buttons
+			* unit      - the unit that has the invisible aura button (string)
+			* gapButton - the invisible aura button (Button)
+			* offset    - the position of the invisible aura button (number)
+			--]]
+			if(auras.PostUpdateGapButton) then
+				auras:PostUpdateGapButton(unit, button, offset)
+			end
+		end
+
+		-- any changes to buffs will affect debuffs, so just redraw them
+		for i = 1, #auras.sortedDebuffs do
+			updateAura(auras, unit, auras.sortedDebuffs[i], i + offset)
+		end
+
+		for i = offset + #auras.sortedDebuffs + 1, #auras do
+			auras[i]:Hide()
+		end
+
+		if(auras.createdButtons > auras.anchoredButtons) then
+			--[[ Override: Auras:SetPosition(from, to)
+			Used to (re-)anchor the aura buttons.
+			Called when new aura buttons have been created or if :PreSetPosition is defined.
+
+			* self - the widget that holds the aura buttons
+			* from - the offset of the first aura button to be (re-)anchored (number)
+			* to   - the offset of the last aura button to be (re-)anchored (number)
+			--]]
+			(auras.SetPosition or SetPosition) (auras, auras.anchoredButtons + 1, auras.createdButtons)
+			auras.anchoredButtons = auras.createdButtons
+		end
+
+		--[[ Callback: Auras:PostUpdate(unit)
+		Called after the element has been updated.
+
+		* self - the widget holding the aura buttons
+		* unit - the unit for which the update has been triggered (string)
+		--]]
+		if(auras.PostUpdate) then auras:PostUpdate(unit) end
 	end
+
+	local buffs = self.Buffs
+	if(buffs) then
+		if(buffs.PreUpdate) then buffs:PreUpdate(unit) end
+
+		local buffsChanged = false
+		local numBuffs = buffs.num or 32
+		local buffFilter = buffs.filter or 'HELPFUL'
+		if(type(buffFilter) == 'function') then
+			buffFilter = buffFilter(buffs, unit)
+		end
+
+		if(not updateInfo or updateInfo.isFullUpdate) then
+			buffs.active = table.wipe(buffs.active or {})
+			buffs.sorted = table.wipe(buffs.sorted or {})
+			buffsChanged = true
+
+			local slots = {UnitAuraSlots(unit, buffFilter)}
+			if(slots[2]) then -- #1 return is continuationToken, we don't care about it
+				local count = 1
+
+				for i = 2, #slots do
+					if count <= numBuffs then
+						local data = processData(C_UnitAuras.GetAuraDataBySlot(unit, slots[i]))
+						if((buffs.FilterAura or FilterAura) (buffs, unit, data)) then
+							buffs.active[data.auraInstanceID] = data
+
+							table.insert(buffs.sorted, data)
+
+							count = count + 1
+						end
+					end
+				end
+			end
+		else
+			if(updateInfo.updatedAuraInstanceIDs) then
+				for _, auraInstanceID in next, updateInfo.updatedAuraInstanceIDs do
+					if(buffs.active[auraInstanceID]) then
+						buffs.active[auraInstanceID] = processData(C_UnitAuras.GetAuraDataByAuraInstanceID(unit, auraInstanceID))
+						buffsChanged = true
+					end
+				end
+			end
+
+			local buffCount = #buffs.sorted
+
+			if(updateInfo.removedAuraInstanceIDs) then
+				for _, auraInstanceID in next, updateInfo.removedAuraInstanceIDs do
+					if(buffs.active[auraInstanceID]) then
+						buffs.active[auraInstanceID] = nil
+						buffCount = buffCount - 1
+						buffsChanged = true
+					end
+				end
+			end
+
+			if(updateInfo.addedAuras) then
+				for _, data in next, updateInfo.addedAuras do
+					if(data.isHelpful and not C_UnitAuras.IsAuraFilteredOutByInstanceID(unit, data.auraInstanceID, buffFilter)) then
+						-- only try to add new buffs if we have enough room for them
+						if(buffCount <= numBuffs) then
+							data = processData(data)
+							if((buffs.FilterAura or FilterAura) (buffs, unit, data)) then
+								buffs.active[data.auraInstanceID] = data
+								buffCount = buffCount + 1
+								buffsChanged = true
+							end
+						end
+					end
+				end
+			end
+
+			if(buffsChanged) then
+				buffs.sorted = table.wipe(buffs.sorted or {})
+
+				for _, data in next, buffs.active do
+					table.insert(buffs.sorted, data)
+				end
+
+				table.sort(buffs.sorted, buffs.SortBuffs or buffs.SortAuras or SortAuras)
+			end
+		end
+
+		if(not buffsChanged) then return end
+
+		for i = 1, #buffs.sorted do
+			updateAura(buffs, unit, buffs.sorted[i], i)
+		end
+
+		for i = #buffs.sorted + 1, #buffs do
+			buffs[i]:Hide()
+		end
+
+		if(buffs.createdButtons > buffs.anchoredButtons) then
+			(buffs.SetPosition or SetPosition) (buffs, buffs.anchoredButtons + 1, buffs.createdButtons)
+			buffs.anchoredButtons = buffs.createdButtons
+		end
+
+		if(buffs.PostUpdate) then buffs:PostUpdate(unit) end
+	end
+
+	local debuffs = self.Debuffs
+	if(debuffs) then
+		if(debuffs.PreUpdate) then debuffs:PreUpdate(unit) end
+
+		local debuffsChanged = false
+		local numDebuffs = debuffs.num or 40
+		local debuffFilter = debuffs.filter or 'HARMFUL'
+		if(type(debuffFilter) == 'function') then
+			debuffFilter = debuffFilter(debuffs, unit)
+		end
+
+		if(not updateInfo or updateInfo.isFullUpdate) then
+			debuffs.active = table.wipe(debuffs.active or {})
+			debuffs.sorted = table.wipe(debuffs.sorted or {})
+			debuffsChanged = true
+
+			local slots = {UnitAuraSlots(unit, debuffFilter)}
+			if(slots[2]) then -- #1 return is continuationToken, we don't care about it
+				local count = 1
+
+				for i = 2, #slots do
+					if count <= numDebuffs then
+						local data = processData(C_UnitAuras.GetAuraDataBySlot(unit, slots[i]))
+						if((debuffs.FilterAura or FilterAura) (debuffs, unit, data)) then
+							debuffs.active[data.auraInstanceID] = data
+
+							table.insert(debuffs.sorted, data)
+
+							count = count + 1
+						end
+					end
+				end
+			end
+		else
+			if(updateInfo.updatedAuraInstanceIDs) then
+				for _, auraInstanceID in next, updateInfo.updatedAuraInstanceIDs do
+					if(debuffs.active[auraInstanceID]) then
+						debuffs.active[auraInstanceID] = processData(C_UnitAuras.GetAuraDataByAuraInstanceID(unit, auraInstanceID))
+						debuffsChanged = true
+					end
+				end
+			end
+
+			local debuffCount = #debuffs.sorted
+
+			if(updateInfo.removedAuraInstanceIDs) then
+				for _, auraInstanceID in next, updateInfo.removedAuraInstanceIDs do
+					if(debuffs.active[auraInstanceID]) then
+						debuffs.active[auraInstanceID] = nil
+						debuffCount = debuffCount - 1
+						debuffsChanged = true
+					end
+				end
+			end
+
+			if(updateInfo.addedAuras) then
+				for _, data in next, updateInfo.addedAuras do
+					if(data.isHarmful and not C_UnitAuras.IsAuraFilteredOutByInstanceID(unit, data.auraInstanceID, debuffFilter)) then
+						-- only try to add new debuffs if we have enough room for them
+						if(debuffCount <= numDebuffs) then
+							data = processData(data)
+							if((debuffs.FilterAura or FilterAura) (debuffs, unit, data)) then
+								debuffs.active[data.auraInstanceID] = data
+								debuffCount = debuffCount + 1
+								debuffsChanged = true
+							end
+						end
+					end
+				end
+			end
+
+			if(debuffsChanged) then
+				debuffs.sorted = table.wipe(debuffs.sorted or {})
+
+				for _, data in next, debuffs.active do
+					table.insert(debuffs.sorted, data)
+				end
+
+				table.sort(debuffs.sorted, debuffs.SortDebuffs or debuffs.SortAuras or SortAuras)
+			end
+		end
+
+		if(not debuffsChanged) then return end
+
+		for i = 1, #debuffs.sorted do
+			updateAura(debuffs, unit, debuffs.sorted[i], i)
+		end
+
+		for i = #debuffs.sorted + 1, #debuffs do
+			debuffs[i]:Hide()
+		end
+
+		if(debuffs.createdButtons > debuffs.anchoredButtons) then
+			(debuffs.SetPosition or SetPosition) (debuffs, debuffs.anchoredButtons + 1, debuffs.createdButtons)
+			debuffs.anchoredButtons = debuffs.createdButtons
+		end
+
+		if(debuffs.PostUpdate) then debuffs:PostUpdate(unit) end
+	end
+end
+
+local function Update(self, event, unit, updateInfo)
+	if(self.unit ~= unit) then return end
+
+	UpdateAuras(self, event, unit, updateInfo)
+
+	-- Assume no event means someone wants to re-anchor things. This is usually
+	-- done by UpdateAllElements and :ForceUpdate.
+	if(event == 'ForceUpdate' or not event) then
+		local auras = self.Auras
+		if(auras) then
+			(auras.SetPosition or SetPosition) (auras, 1, auras.createdButtons)
+		end
+
+		local buffs = self.Buffs
+		if(buffs) then
+			(buffs.SetPosition or SetPosition) (buffs, 1, buffs.createdButtons)
+		end
+
+		local debuffs = self.Debuffs
+		if(debuffs) then
+			(debuffs.SetPosition or SetPosition) (debuffs, 1, debuffs.createdButtons)
+		end
+	end
+end
+
+local function Update(self, event, unit, updateInfo)
+	if(self.unit ~= unit) then return end
+
+	UpdateAuras(self, event, unit, updateInfo)
+
+	-- Assume no event means someone wants to re-anchor things. This is usually
+	-- done by UpdateAllElements and :ForceUpdate.
+	if(event == 'ForceUpdate' or not event) then
+		local auras = self.Auras
+		if(auras) then
+			(auras.SetPosition or SetPosition) (auras, 1, auras.createdButtons)
+		end
+
+		local buffs = self.Buffs
+		if(buffs) then
+			(buffs.SetPosition or SetPosition) (buffs, 1, buffs.createdButtons)
+		end
+
+		local debuffs = self.Debuffs
+		if(debuffs) then
+			(debuffs.SetPosition or SetPosition) (debuffs, 1, debuffs.createdButtons)
+		end
+	end
+end
+
+local function ForceUpdate(element)
+	return Update(element.__owner, 'ForceUpdate', element.__owner.unit)
 end
 
 local function Enable(self)
-	if(STATE[self] and STATE[self].elements) then
-		for _, element in next, STATE[self].elements do
-			element:SetEnabled(true) -- triggers a full update
+	if(self.Auras or self.Buffs or self.Debuffs) then
+		self:RegisterEvent('UNIT_AURA', UpdateAuras)
+
+		local auras = self.Auras
+		if(auras) then
+			auras.__owner = self
+			-- check if there's any anchoring restrictions
+			auras.__restricted = not pcall(self.GetCenter, self)
+			auras.ForceUpdate = ForceUpdate
+
+			auras.createdButtons = auras.createdButtons or 0
+			auras.anchoredButtons = 0
+			auras.tooltipAnchor = auras.tooltipAnchor or 'ANCHOR_BOTTOMRIGHT'
+
+			-- auras:Show() -- ShestakUI
+		end
+
+		local buffs = self.Buffs
+		if(buffs) then
+			buffs.__owner = self
+			-- check if there's any anchoring restrictions
+			buffs.__restricted = not pcall(self.GetCenter, self)
+			buffs.ForceUpdate = ForceUpdate
+
+			buffs.createdButtons = buffs.createdButtons or 0
+			buffs.anchoredButtons = 0
+			buffs.tooltipAnchor = buffs.tooltipAnchor or 'ANCHOR_BOTTOMRIGHT'
+
+			-- buffs:Show() -- ShestakUI
+		end
+
+		local debuffs = self.Debuffs
+		if(debuffs) then
+			debuffs.__owner = self
+			-- check if there's any anchoring restrictions
+			debuffs.__restricted = not pcall(self.GetCenter, self)
+			debuffs.ForceUpdate = ForceUpdate
+
+			debuffs.createdButtons = debuffs.createdButtons or 0
+			debuffs.anchoredButtons = 0
+			debuffs.tooltipAnchor = debuffs.tooltipAnchor or 'ANCHOR_BOTTOMRIGHT'
+
+			-- debuffs:Show() -- ShestakUI
 		end
 
 		return true
@@ -353,11 +765,13 @@ local function Enable(self)
 end
 
 local function Disable(self)
-	if(STATE[self] and STATE[self].elements) then
-		for _, element in next, STATE[self].elements do
-			element:SetEnabled(false)
-		end
+	if(self.Auras or self.Buffs or self.Debuffs) then
+		self:UnregisterEvent('UNIT_AURA', UpdateAuras)
+
+		if(self.Auras) then self.Auras:Hide() end
+		if(self.Buffs) then self.Buffs:Hide() end
+		if(self.Debuffs) then self.Debuffs:Hide() end
 	end
 end
 
-oUF:AddMetaElement('Auras', Create, Update, Enable, Disable)
+oUF:AddElement('Auras', Update, Enable, Disable)

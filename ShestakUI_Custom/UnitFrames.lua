@@ -212,12 +212,93 @@ T.PostUpdatePower = function(power, unit, cur, _, max)
 	end
 end
 
+-- 自定义头像更新函数，用于接管 oUF 的 Portrait 渲染，避开对 oUF 核心库的侵入性修改，适配 12.1.0 的安全 Token
+local function UpdatePortrait(self, event, unit)
+	if not unit then return end
+
+	local currentUnit = self.__unit or self.unit
+	local isMatch = false
+	if currentUnit == unit then
+		isMatch = true
+	elseif C_Secrets and C_Secrets.CanCompareUnitTokens then
+		local isOk, res = pcall(C_Secrets.CanCompareUnitTokens, currentUnit, unit)
+		if isOk then isMatch = res end
+	else
+		local isOk, res = pcall(UnitIsUnit, currentUnit, unit)
+		if isOk then isMatch = res end
+	end
+
+	if not isMatch then return end
+
+	local portrait = self.Portrait
+	if not portrait then return end
+
+	if portrait.PreUpdate then
+		portrait:PreUpdate(unit)
+	end
+
+	local is3D = portrait:IsObjectType("PlayerModel") or portrait:IsObjectType("CinematicModel")
+	local guid = UnitGUID(unit)
+	local isConnected = UnitIsConnected(unit)
+	local isVisible = UnitIsVisible(unit)
+
+	if is3D then
+		if not isConnected or not isVisible or not guid then
+			portrait:ClearModel()
+			if portrait.SetCamDistanceScale then
+				portrait:SetCamDistanceScale(1)
+			end
+			if portrait.Icon then
+				portrait.Icon:Show()
+				SetPortraitTexture(portrait.Icon, unit)
+			end
+		else
+			if portrait.Icon then
+				portrait.Icon:Hide()
+			end
+			portrait:ClearModel()
+			portrait:SetUnit(unit)
+			if portrait.SetCamDistanceScale then
+				portrait:SetCamDistanceScale(1)
+			end
+			if portrait.SetPosition then
+				portrait:SetPosition(0, 0, 0)
+			end
+			if portrait.SetRotation then
+				portrait:SetRotation(0)
+			end
+			if portrait.SetPortraitZoom then
+				portrait:SetPortraitZoom(1)
+			end
+		end
+	else
+		if portrait.Icon then
+			portrait.Icon:Show()
+			if not isConnected then
+				portrait.Icon:SetTexture([[Interface\CharacterFrame\Disconnect-Icon]])
+				portrait.Icon:SetTexCoord(0, 1, 0, 1)
+			else
+				SetPortraitTexture(portrait.Icon, unit)
+				portrait.Icon:SetTexCoord(0.1, 0.9, 0.1, 0.9)
+			end
+		end
+	end
+
+	if portrait.PostUpdate then
+		portrait:PostUpdate(unit)
+	end
+end
+
 -- 3. 注入玩家与目标框体样式与错位布局
 local function CustomStyleUnitFrame(self, unit)
 	if not self or not self.Health or not self.Power then return end
 
 	local realUnit = unit or self.__unit or self.unit
 	if realUnit == "player" or realUnit == "target" then
+		-- 重新绑定 Health 和 Power 的 PostUpdate 回调，确保生效
+		self.Health.PostUpdate = T.PostUpdateHealth
+		self.Power.PostUpdate = T.PostUpdatePower
+
 		-- 隐藏主框体统一样式边框背景
 		if self.backdrop then
 			self.backdrop:Hide()
@@ -249,6 +330,12 @@ local function CustomStyleUnitFrame(self, unit)
 			self.Power.backdrop:SetFrameLevel(3)
 		end
 
+		-- 目标框体及玩家框体（根据配置）能量数值强制清空
+		if realUnit == "target" or (realUnit == "player" and C.unitframe.show_player_power ~= true) then
+			if self.Power.value then self.Power.value:SetText("") end
+			if self.Power.short_value then self.Power.short_value:SetText("") end
+		end
+
 		-- 3D 头像 OVERLAY 模式嵌入在生命条上并随当前血量动态裁剪
 		if C.unitframe.portrait_enable and (C.unitframe.portrait_type == "OVERLAY" or C.unitframe.portrait_type == "3D") and self.Portrait then
 			if not self.PortraitWrapper then
@@ -268,6 +355,10 @@ local function CustomStyleUnitFrame(self, unit)
 				self.Portrait.backdrop:Hide()
 			end
 			self.Portrait:SetAlpha(0.35)
+
+			-- 挂载自定义 UpdatePortrait
+			self.Portrait.Override = UpdatePortrait
+			pcall(UpdatePortrait, self, "OnShow", realUnit)
 		end
 
 		-- 文字与外侧大号百分比布局
@@ -324,19 +415,29 @@ if oUF and oUF.RegisterInitCallback then
 	oUF:RegisterInitCallback(CustomStyleUnitFrame)
 end
 
--- 兼容可能已经生成的框架
+-- 兼容可能已经生成的框架，并在登录时刷新一次状态
 local frameList = {
 	"oUF_Player",
 	"oUF_Target",
 }
 local frame = CreateFrame("Frame")
 frame:RegisterEvent("PLAYER_ENTERING_WORLD")
-frame:SetScript("OnEvent", function()
+frame:RegisterEvent("PLAYER_TARGET_CHANGED")
+frame:SetScript("OnEvent", function(self, event)
 	for _, frameName in ipairs(frameList) do
 		local f = _G[frameName]
 		if f then
 			local unit = f.__unit or (frameName == "oUF_Player" and "player") or (frameName == "oUF_Target" and "target")
 			CustomStyleUnitFrame(f, unit)
+			if f.Health and f.Health.PostUpdate then
+				f.Health:PostUpdate(unit, UnitHealth(unit), UnitHealthMax(unit))
+			end
+			if f.Power and f.Power.PostUpdate then
+				f.Power:PostUpdate(unit, UnitPower(unit), nil, UnitPowerMax(unit))
+			end
+			if f.Portrait and f.Portrait.Override then
+				pcall(f.Portrait.Override, f, event, unit)
+			end
 		end
 	end
 end)

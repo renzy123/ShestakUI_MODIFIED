@@ -11,12 +11,20 @@ local oUF = ShestakUI[2].oUF or ns.oUF or oUF
 local function CustomStyleRaidFrame(self, unit)
 	if not self then return end
 
-	-- 针对小队队友框体：隐藏 Debuff 图标
+	-- 针对小队队友框体：隐藏 Debuff 图标与能量数值文本
 	local name = self:GetName() or ""
 	if name:match("oUF_PartyDPS") or (unit and unit:match("^party%d?$")) then
 		if self.Debuffs then
 			self.Debuffs:Hide()
 			self.Debuffs.Show = function() end -- 阻止再次被 oUF 自动显示
+		end
+
+		if self.Power then
+			self.Power.PostUpdate = T.PostUpdatePower
+			if C.raidframe.show_party_power ~= true then
+				if self.Power.value then self.Power.value:SetText("") end
+				if self.Power.short_value then self.Power.short_value:SetText("") end
+			end
 		end
 	end
 end
@@ -26,7 +34,7 @@ if oUF and oUF.RegisterInitCallback then
 	oUF:RegisterInitCallback(CustomStyleRaidFrame)
 end
 
--- 登录后对已存在的小队成员框体执行一次安全隐藏
+-- 登录后对已存在的小队成员框体执行一次安全隐藏与绑定
 local frame = CreateFrame("Frame")
 frame:RegisterEvent("PLAYER_ENTERING_WORLD")
 frame:SetScript("OnEvent", function()

@@ -49,103 +49,79 @@ T.PostUpdateHealth = function(health, unit, cur, max)
 		end
 		health.value:SetAlpha(1)
 		health.short_value:SetText()
-
-		-- 当目标死亡、离线或为鬼魂时，生命值已为 0，需将其外侧百分比文本 health.percentage 更新为 0%
-		-- 否则会保留死亡前的残留百分比数值。颜色使用其职业/反应色，默认使用灰色。
-		if health.percentage then
-			local hex = "ff9d9d9d" -- 默认灰色
-			if (UnitIsPlayer(unit) or UnitInPartyIsAI(unit)) then
-				local _, class = UnitClass(unit)
-				local color = (CUSTOM_CLASS_COLORS or RAID_CLASS_COLORS)[class]
-				if color then
-					hex = string.format("ff%02x%02x%02x", color.r * 255, color.g * 255, color.b * 255)
-				end
-			else
-				local reaction = UnitReaction(unit, "player")
-				if reaction then
-					local c = T.oUF_colors.reaction[reaction]
-					if c then
-						hex = string.format("ff%02x%02x%02x", c.r * 255, c.g * 255, c.b * 255)
-					end
-				end
-			end
-			health.percentage:SetFormattedText("|c%s0%%|r", hex)
-		end
 	else
-		-- 使用 UnitHealthPercent 替代手动除法计算百分比，以兼容 12.x/12.1.0 的 Secret Values
 		local perc = UnitHealthPercent(unit, true, CurveConstants.ScaleTo100)
 
-		if (unit == "player" or unit == "vehicle" or unit == "target") and health:GetAttribute("normalUnit") ~= "pet" then
-			local success, result = pcall(function() return perc < 50 end)
-			local isLowHealth = success and result
-			local valueHex = isLowHealth and "ffff0000" or "ff559655"
-			-- 生命值显示格式：简洁显示当前血量数值缩写
-			health.value:SetFormattedText("|c%s%s|r", valueHex, T.ShortValue(cur))
-			health.value:SetAlpha(1)
-			health.short_value:SetText("")
-
-			-- 更新外侧百分比文本，并使用职业/声望颜色
-			if health.percentage then
-				local hex = "ffffffff"
-				if isLowHealth then
-					hex = "ffff0000"
-				elseif (UnitIsPlayer(unit) or UnitInPartyIsAI(unit)) then
-					local _, class = UnitClass(unit)
-					local color = (CUSTOM_CLASS_COLORS or RAID_CLASS_COLORS)[class]
-					if color then
-						hex = string.format("ff%02x%02x%02x", color.r * 255, color.g * 255, color.b * 255)
-					end
+		local hex
+		if C.unitframe.color_value then
+			local color = UnitHealthPercent(unit, true, gradient)
+			hex = color:GenerateHexColor()
+		end
+		if (unit == "player" and not UnitHasVehicleUI("player") or unit == "vehicle") and health:GetAttribute("normalUnit") ~= "pet" then
+			if C.unitframe.show_total_value then
+				if C.unitframe.color_value then
+					health.value:SetFormattedText("|cff559655%s|r |cffD7BEA5-|r |cff559655%s|r", T.ShortValue(cur), T.ShortValue(max))
 				else
-					local reaction = UnitReaction(unit, "player")
-					if reaction then
-						local c = T.oUF_colors.reaction[reaction]
-						if c then
-							hex = string.format("ff%02x%02x%02x", c.r * 255, c.g * 255, c.b * 255)
-						end
-					end
+					health.value:SetFormattedText("|cffffffff%s - %s|r", T.ShortValue(cur), T.ShortValue(max))
 				end
-				health.percentage:SetFormattedText("|c%s%d%%|r", hex, perc)
-			end
-		else
-			local hex
-			local success, result = pcall(function() return perc < 50 end)
-			local isLowHealth = success and result
-			if C.unitframe.color_value then
-				local color = UnitHealthPercent(unit, true, gradient)
-				hex = color:GenerateHexColor()
 			else
-				hex = isLowHealth and "ffff0000" or "ffffffff"
+				if C.unitframe.color_value then
+					health.value:SetFormattedText("|cffAF5050%d|r |cffD7BEA5-|r |c%s%d%%|r", cur, hex, perc)
+				else
+					health.value:SetFormattedText("|cffffffff%d - %d%%|r", cur, perc)
+				end
 			end
-			if unit and unit:find("boss%d") then
+		elseif unit == "target" then
+			if C.unitframe.show_total_value then
+				if C.unitframe.color_value then
+					health.value:SetFormattedText("|cff559655%s|r |cffD7BEA5-|r |cff559655%s|r", T.ShortValue(cur), T.ShortValue(max))
+				else
+					health.value:SetFormattedText("|cffffffff%s - %s|r", T.ShortValue(cur), T.ShortValue(max))
+				end
+			else
 				if C.unitframe.color_value then
 					health.value:SetFormattedText("|c%s%d%%|r |cffD7BEA5-|r |cffAF5050%s|r", hex, perc, T.ShortValue(cur))
 				else
-					health.value:SetFormattedText("|c%s%d%% - %s|r", hex, perc, T.ShortValue(cur))
-				end
-			else
-				if C.unitframe.color_value then
-					health.value:SetFormattedText("|c%s%d%%|r", hex, perc)
-				else
-					health.value:SetFormattedText("|c%s%d%%|r", hex, perc)
+					health.value:SetFormattedText("|cffffffff%d%% - %s|r", perc, T.ShortValue(cur))
 				end
 			end
+		elseif unit and unit:find("boss%d") then
+			if C.unitframe.color_value then
+				health.value:SetFormattedText("|c%s%d%%|r |cffD7BEA5-|r |cffAF5050%s|r", hex, perc, T.ShortValue(cur))
+			else
+				health.value:SetFormattedText("|cffffffff%d%% - %s|r", perc, T.ShortValue(cur))
+			end
+		else
+			if C.unitframe.color_value then
+				health.value:SetFormattedText("|c%s%d%%|r", hex, perc)
+			else
+				health.value:SetFormattedText("|cffffffff%d%%|r", perc)
+			end
+		end
 
-			local color = UnitHealthPercent(unit, true, health_value)
-			local _, _, _, alpha = color:GetRGBA()
-			health.value:SetAlpha(alpha)
+		local color = UnitHealthPercent(unit, true, health_value)
+		local _, _, _, alpha = color:GetRGBA()
+		health.value:SetAlpha(alpha)
 
-			-- 满血状态逻辑
-			do
+		-- Full health
+		do
+			if (unit == "player" and not UnitHasVehicleUI("player") or unit == "vehicle") then
+				if C.unitframe.color_value then
+					health.short_value:SetText("|cff559655"..max.."|r")
+				else
+					health.short_value:SetText("|cffffffff"..max.."|r")
+				end
+			else
 				if C.unitframe.color_value then
 					health.short_value:SetText("|cff559655"..T.ShortValue(max).."|r")
 				else
 					health.short_value:SetText("|cffffffff"..T.ShortValue(max).."|r")
 				end
-
-				local color = UnitHealthPercent(unit, true, full_health_value)
-				local _, _, _, alpha = color:GetRGBA()
-				health.short_value:SetAlpha(alpha)
 			end
+
+			local color = UnitHealthPercent(unit, true, full_health_value)
+			local _, _, _, alpha = color:GetRGBA()
+			health.short_value:SetAlpha(alpha)
 		end
 	end
 end
@@ -362,24 +338,6 @@ T.PostUpdatePower = function(power, unit, cur, _, max)
 	end
 
 	if not power.value then return end
-
-	-- 根据样式规范：玩家框体（根据配置）与目标框体均不显示具体的能量/法力数值文本
-	if (unit == "player" and C.unitframe.show_player_power ~= true) or unit == "target" then
-		power.value:SetText("")
-		if power.short_value then
-			power.short_value:SetText("")
-		end
-		return
-	end
-
-	-- 根据 config 设置判定：若 show_party_power 为 false，则不在小队队友框体上显示能量/法力具体数值
-	if unit and (unit:find("^party%d?$") or unit == "party") and C.raidframe.show_party_power ~= true then
-		power.value:SetText("")
-		if power.short_value then
-			power.short_value:SetText("")
-		end
-		return
-	end
 
 	if isDead then
 		power.value:SetText()

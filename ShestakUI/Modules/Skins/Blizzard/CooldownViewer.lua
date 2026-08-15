@@ -206,22 +206,15 @@ local function LoadSkin()
 		end
 	end
 
-	-- 核心安全隔离防护：避免在暴雪 RefreshAuraInstance 数据管道中直接修改 Cooldown 控件导致执行上下文被 Tainted。
-	-- 使用 C_Timer.After(0) 将样式处理推迟到当帧 callstack 结束后，保证 CooldownViewerItemData.lua:382 能纯净地比较 expirationTime。
 	local function SetTimerShown(self)
-		if not self or issecretvalue(self) or not self.Cooldown then return end
-		C_Timer.After(0, function()
-			pcall(function()
-				local text = self.Cooldown:GetRegions()
-				if text and text.SetFont then
-					text:SetFont(C.font.cooldown_timers_font, C.font.cooldown_timers_font_size, C.font.cooldown_timers_font_style)
-					text:SetShadowOffset(C.font.cooldown_timers_font_shadow and 1 or 0, C.font.cooldown_timers_font_shadow and -1 or 0)
-					text:ClearAllPoints()
-					text:SetPoint("LEFT", -2, 0)
-					text:SetPoint("RIGHT", 3, 0)
-				end
-			end)
-		end)
+		if self.Cooldown then
+			local text = self.Cooldown:GetRegions()
+			text:SetFont(C.font.cooldown_timers_font, C.font.cooldown_timers_font_size, C.font.cooldown_timers_font_style)
+			text:SetShadowOffset(C.font.cooldown_timers_font_shadow and 1 or 0, C.font.cooldown_timers_font_shadow and -1 or 0)
+			text:ClearAllPoints()
+			text:SetPoint("LEFT", -2, 0)
+			text:SetPoint("RIGHT", 3, 0)
+		end
 	end
 
 	local hookFunctions = {
@@ -229,44 +222,35 @@ local function LoadSkin()
 	}
 
 	local function SkinItemFrame(frame)
-		if not frame or issecretvalue(frame) then return end
+		if frame.Cooldown then
+			frame.Cooldown:SetSwipeTexture(C.media.blank)
 
-		pcall(function()
-			if frame.Cooldown then
-				C_Timer.After(0, function()
-					pcall(function() frame.Cooldown:SetSwipeTexture(C.media.blank) end)
-				end)
-
-				if not frame.Cooldown.done then
-					for key, func in next, hookFunctions do
-						if frame[key] then
-							hooksecurefunc(frame, key, func)
-						end
+			if not frame.Cooldown.done then
+				for key, func in next, hookFunctions do
+					if frame[key] then
+						hooksecurefunc(frame, key, func)
 					end
-					frame.Cooldown.done = true
 				end
+				frame.Cooldown.done = true
 			end
+		end
 
-			if frame.Bar then
-				SkinBar(frame, frame.Bar)
-			elseif frame.Icon then
-				SkinIcon(frame, frame.Icon)
-			end
-		end)
+		if frame.Bar then
+			SkinBar(frame, frame.Bar)
+		elseif frame.Icon then
+			SkinIcon(frame, frame.Icon)
+		end
+	end
+
+	local function AcquireItemFrame(frame)
+		SkinItemFrame(frame)
 	end
 
 	local function HandleViewer(element)
-		if not element then return end
-		hooksecurefunc(element, "OnAcquireItemFrame", function(self, frame)
-			if frame then
-				SkinItemFrame(frame)
-			end
-		end)
+		hooksecurefunc(element, "OnAcquireItemFrame", AcquireItemFrame)
 
-		if element.itemFramePool then
-			for frame in element.itemFramePool:EnumerateActive() do
-				SkinItemFrame(frame)
-			end
+		for frame in element.itemFramePool:EnumerateActive() do
+			SkinItemFrame(frame)
 		end
 	end
 

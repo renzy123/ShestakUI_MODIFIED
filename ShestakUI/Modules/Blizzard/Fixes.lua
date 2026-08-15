@@ -43,15 +43,6 @@ if T.client == "ruRU" then
 	_G["DeclensionFrame"]:SetFrameStrata("HIGH")
 end
 
--- 确保系统级弹出确认窗口 (StaticPopup) 处于最高对话框层级 (DIALOG / FrameLevel 100)，绝不被单位框体遮挡
-for i = 1, 4 do
-	local popup = _G["StaticPopup"..i]
-	if popup then
-		popup:SetFrameStrata("DIALOG")
-		popup:SetFrameLevel(100)
-	end
-end
-
 ----------------------------------------------------------------------------------------
 --	Hide right-click line on unitframes tooltip
 ----------------------------------------------------------------------------------------

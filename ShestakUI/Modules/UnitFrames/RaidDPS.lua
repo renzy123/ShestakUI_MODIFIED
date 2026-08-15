@@ -239,19 +239,23 @@ local function Shared(self, unit)
 	end
 
 	-- Debuff icons
-	if C.raidframe.dps_party_debuffs and unit == "party" and (not (suffix == "target")) and (not (suffix == "pet")) then
-		self.Debuffs = CreateFrame("Frame", self:GetName().."Debuffs", self)
+	if unit == "party" and (not (suffix == "target")) and (not (suffix == "pet")) then
+		self.Debuffs = self:CreateAuras({
+			initialAnchor = "LEFT",
+			growthY = "RIGHT",
+			growthY = "DOWN",
+			layoutLimit = 144,
+		})
 		self.Debuffs:SetPoint("TOPLEFT", self, "BOTTOMLEFT", -2, -5)
-		self.Debuffs:SetHeight(18)
-		self.Debuffs:SetWidth(144)
 		self.Debuffs.size = T.Scale(18)
-		self.Debuffs.spacing = T.Scale(3)
-		self.Debuffs.initialAnchor = "LEFT"
-		self.Debuffs.num = 7
-		self.Debuffs.growthX = "RIGHT"
-		self.Debuffs.growthY = "DOWN"
+		self.Debuffs.elementSpacing = T.Scale(3)
+		self.Debuffs.showCount = true
 		self.Debuffs.PostCreateButton = T.PostCreateIcon
-		self.Debuffs.PostUpdateButton = T.PostUpdateIcon
+
+		self.Debuffs:AddGroup("HARMFUL", {
+			maxFrameCount = 7,
+			showDebuffBorder = true,
+		})
 	end
 
 	-- Dispel highlight
@@ -299,7 +303,6 @@ oUF:Factory(function(self)
 	oUF:SetActiveStyle("ShestakDPS")
 	if C.raidframe.show_party == true then
 		-- Party
-		local party_spacing = (C.raidframe.dps_party_debuffs and 28) or (C.raidframe.dps_party_vertical_spacing or C.raidframe.party_spacing or 14)
 		local party = self:SpawnHeader("oUF_PartyDPS", nil,
 			"oUF-initialConfigFunction", [[
 				local header = self:GetParent()
@@ -315,11 +318,11 @@ oUF:Factory(function(self)
 			"sortMethod", C.raidframe.by_role and "NAME",
 			"showParty", true,
 			"showRaid", true,
-			"yOffset", T.Scale(party_spacing),
+			"yOffset", T.Scale(28),
 			"point", "BOTTOM"
 		)
 		party:SetVisibility("custom [@raid6,exists] hide;show")
-		_G["PartyDPSAnchor"]:SetSize(T.Scale(party_width), T.Scale(party_height) * 5 + T.Scale(party_spacing) * 4)
+		_G["PartyDPSAnchor"]:SetSize(T.Scale(party_width), T.Scale(party_height) * 5 + T.Scale(28) * 4)
 		party:SetPoint("BOTTOMLEFT", _G["PartyDPSAnchor"])
 
 		-- Party targets
@@ -340,11 +343,11 @@ oUF:Factory(function(self)
 				"sortMethod", C.raidframe.by_role and "NAME",
 				"showParty", true,
 				"showRaid", true,
-				"yOffset", T.Scale(party_spacing),
+				"yOffset", T.Scale(28),
 				"point", "BOTTOM"
 			)
 			partytarget:SetVisibility("custom [@raid6,exists] hide;show")
-			_G["PartyTargetDPSAnchor"]:SetSize(T.Scale(partytarget_width), T.Scale(partytarget_height) * 5 + T.Scale(party_spacing) * 4)
+			_G["PartyTargetDPSAnchor"]:SetSize(T.Scale(partytarget_width), T.Scale(partytarget_height) * 5 + T.Scale(28) * 4)
 			partytarget:SetPoint("BOTTOMLEFT", _G["PartyTargetDPSAnchor"])
 		end
 
@@ -367,11 +370,11 @@ oUF:Factory(function(self)
 				"sortMethod", C.raidframe.by_role and "NAME",
 				"showParty", true,
 				"showRaid", true,
-				"yOffset", T.Scale(party_spacing),
+				"yOffset", T.Scale(28),
 				"point", "BOTTOM"
 			)
 			partypet:SetVisibility("custom [@raid6,exists] hide;show")
-			_G["PartyPetDPSAnchor"]:SetSize(T.Scale(partytarget_width), T.Scale(partytarget_height) * 5 + T.Scale(party_spacing) * 4)
+			_G["PartyPetDPSAnchor"]:SetSize(T.Scale(partytarget_width), T.Scale(partytarget_height) * 5 + T.Scale(28) * 4)
 			partypet:SetPoint("BOTTOMLEFT", _G["PartyPetDPSAnchor"])
 		end
 	end

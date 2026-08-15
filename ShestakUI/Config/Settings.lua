@@ -85,12 +85,11 @@ C["skins"] = {
 C["unitframe"] = {
 	-- Main
 	["enable"] = true,							-- Enable unit frames
-	["own_color"] = false,						-- 默认使用职业颜色作为生命值条颜色
-	["uf_color"] = {0.07, 0.07, 0.07},			-- 生命值条颜色设为深灰色/接近黑色，与图片样式一致
-	["uf_color_bg"] = {0.03, 0.03, 0.03},		-- 生命值条背景设为极深灰色
+	["own_color"] = false,						-- Set your color for health bars
+	["uf_color"] = {0.4, 0.4, 0.4},				-- Color of health bars if ["own_color"] = true
+	["uf_color_bg"] = {0.1, 0.1, 0.1},			-- Color of health background
 	["enemy_health_color"] = true,				-- If enable, enemy target healthbar color is red
 	["show_total_value"] = false,				-- Display of info text on player and target with XXXX/Total
-	["show_player_power"] = false,				-- 玩家框体不再显示具体的能量/法力数值
 	["color_value"] = false,					-- Health/mana value is colored
 	["bar_color_value"] = false,				-- Health bar color by current health remaining
 	["lines"] = true,							-- Show Player and Target lines
@@ -113,9 +112,9 @@ C["unitframe"] = {
 	["icons_combat"] = true,					-- Combat icon
 	["icons_resting"] = true,					-- Resting icon
 	-- Portraits
-	["portrait_enable"] = true,					-- 启用头像
+	["portrait_enable"] = false,				-- Enable player/target portraits
 	["portrait_classcolor_border"] = true,		-- Enable classcolor border
-	["portrait_type"] = "OVERLAY",				-- 设为覆盖式3D头像，使其显示在生命值条内部
+	["portrait_type"] = "3D",					-- Type of portraits (3D, 2D, ICONS, OVERLAY)
 	["portrait_height"] = 92,					-- Portrait height
 	["portrait_width"] = 67,					-- Portrait width
 	-- Plugins
@@ -217,9 +216,6 @@ C["raidframe"] = {
 	["dps_party_width"] = 140,					-- Party width
 	["dps_party_height"] = 27,					-- Party height
 	["dps_party_power_height"] = 5,				-- Party power height
-	["dps_party_vertical_spacing"] = 1,			-- DPS/TANK 模式下小队框体纵向间距(像素)
-	["dps_party_debuffs"] = false,				-- 输出模式下的小队队友是否显示 DEBUFF 图标
-	["show_party_power"] = false,				-- 小队队友框体是否显示具体的能量/法力数值
 	["dps_raid_width"] = 104,					-- Raid width
 	["dps_raid_height"] = 17,					-- Raid height
 	["dps_raid_power_height"] = 1,				-- Raid power height
@@ -379,7 +375,6 @@ C["chat"] = {
 	["role_icons"] = false,						-- Role Icons
 	["history"] = false,						-- Chat history
 	["hide_combat"] = false,					-- Hide chat in combat
-	["time_stamp"] = false,						-- 关闭聊天窗口的时间戳
 	["custom_time_color"] = true,				-- Enable custom timestamp coloring
 	["time_color"] = {1, 1, 0},					-- Timestamp coloring (http://www.december.com/html/spec/colorcodescompact.html)
 }

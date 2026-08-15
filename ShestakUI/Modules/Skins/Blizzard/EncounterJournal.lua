@@ -74,21 +74,6 @@ local function LoadSkin()
 	delvesBar:SetStatusBarTexture(C.media.texture)
 	delvesBar:SetStatusBarColor(0, 1, 0.6)
 
-	-- ROOT CAUSE 精准修复：暴雪原生 DelveRewardProgressBar 在 StripTextures 剥离边框后缺乏右边界约束，导致超长延伸穿透右框架。
-	-- 此处将 delvesBar 的 LEFT / RIGHT 点统一限制在 EncounterJournalJourneysFrame 内部（保留 30px 边距）
-	local function FitDelvesBar(bar)
-		if not bar then return end
-		local _, _, _, _, yOfs = bar:GetPoint()
-		bar:ClearAllPoints()
-		bar:SetPoint("LEFT", EncounterJournalJourneysFrame, "LEFT", 30, yOfs or 85)
-		bar:SetPoint("RIGHT", EncounterJournalJourneysFrame, "RIGHT", -30, yOfs or 85)
-		if bar.backdrop then
-			bar.backdrop:ClearAllPoints()
-			bar.backdrop:SetAllPoints(bar)
-		end
-	end
-	FitDelvesBar(delvesBar)
-
 	local delvesBtn = EncounterJournalJourneysFrame.JourneyProgress.DelvesCompanionConfigurationFrame.CompanionConfigBtn
 	delvesBtn:CreateBackdrop("Overlay")
 	delvesBtn.backdrop:SetInside(nil, 4, 4)
@@ -109,9 +94,6 @@ local function LoadSkin()
 	paragon.HighlightTexture:SetAlpha(0)
 
 	hooksecurefunc(EncounterJournalJourneysFrame.JourneyProgress, "SetRewards", function(self)
-		if self.DelveRewardProgressBar then
-			FitDelvesBar(self.DelveRewardProgressBar)
-		end
 		for reward in self.rewardPool:EnumerateActive() do
 			if not reward.styled then
 				reward:CreateBackdrop("Overlay")

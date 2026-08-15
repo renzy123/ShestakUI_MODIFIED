@@ -18,72 +18,6 @@ local player_width = C.unitframe.player_width
 local pet_width = (player_width - 7) / 2
 local boss_width = C.unitframe.boss_width
 
--- 自定义头像更新函数，用于接管 oUF 的 Portrait 渲染，避开对 oUF 核心库的侵入性修改
-local function UpdatePortrait(self, event, unit)
-	if not unit then return end
-
-	local currentUnit = self.__unit or self.unit
-	local isMatch = false
-	if currentUnit == unit then
-		isMatch = true
-	elseif C_Secrets and C_Secrets.CanCompareUnitTokens then
-		local isOk, res = pcall(C_Secrets.CanCompareUnitTokens, currentUnit, unit)
-		if isOk then isMatch = res end
-	else
-		local isOk, res = pcall(UnitIsUnit, currentUnit, unit)
-		if isOk then isMatch = res end
-	end
-	if not isMatch then return end
-
-	local element = self.Portrait
-	if element.PreUpdate then element:PreUpdate(unit) end
-
-	local guid = UnitGUID(unit)
-	local isAvailable = UnitIsConnected(unit) and (UnitIsVisible(unit) or UnitExists(unit))
-
-	local hasStateChanged = event ~= "OnUpdate"
-		or (not issecretvalue(guid) and not issecretvalue(element.guid) and element.guid ~= guid)
-		or element.state ~= isAvailable
-
-	if hasStateChanged then
-		if element:IsObjectType("PlayerModel") then
-			local shouldFallback2D = not isAvailable
-
-			if shouldFallback2D then
-				element:ClearModel()
-				if element.Icon then
-					element.Icon:Show()
-					element.Icon:SetTexture([[Interface\Buttons\TalkToMeQuestionMark]])
-					element.Icon:SetTexCoord(0.15, 0.85, 0.15, 0.85)
-				end
-			else
-				if element.Icon then element.Icon:Hide() end
-				element:SetCamDistanceScale(1)
-				element:SetPortraitZoom(1)
-				element:SetPosition(0, 0, 0)
-				element:ClearModel()
-				element:SetUnit(unit)
-			end
-		else
-			if element.classIcons then
-				local _, class = UnitClass(self.unit)
-				local texcoord = CLASS_ICON_TCOORDS[class]
-				element.Icon:SetTexCoord(texcoord[1] + 0.015, texcoord[2] - 0.02, texcoord[3] + 0.018, texcoord[4] - 0.02)
-			else
-				SetPortraitTexture(element.Icon, unit)
-				element.Icon:SetTexCoord(0.15, 0.85, 0.15, 0.85)
-			end
-		end
-
-		element.guid = guid
-		element.state = isAvailable
-	end
-
-	if element.PostUpdate then
-		return element:PostUpdate(unit)
-	end
-end
-
 -- Create layout
 local function Shared(self, unit)
 	-- Set our own colors
@@ -158,7 +92,7 @@ local function Shared(self, unit)
 	if C.unitframe.own_color then
 		self.Health.bg:SetVertexColor(unpack(C.unitframe.uf_color_bg))
 	else
-		self.Health.bg.multiplier = 0 -- 背景显示为纯黑色
+		self.Health.bg.multiplier = 0.2
 	end
 
 	-- Health value
@@ -216,40 +150,13 @@ local function Shared(self, unit)
 
 		-- Power bar
 		self.Power = CreateFrame("StatusBar", self:GetName().."_Power", self)
-		if unit == "player" or unit == "target" then
-			self.backdrop:Hide()
-			self.Health:CreateBackdrop("Default")
-			self.Health:SetFrameLevel(6)
-			if self.Health.backdrop then
-				self.Health.backdrop:SetFrameLevel(5)
-			end
-
-			-- 能量条高度设为 7 并层级在下，与生命值条横向错位重叠（横向偏置 4 像素，形成错落立体视觉效果）
-			self.Power:SetHeight(7 + C.unitframe.extra_power_height)
-			self.Power:ClearAllPoints()
-			if unit == "player" then
-				self.Power:SetPoint("TOPLEFT", self.Health, "BOTTOMLEFT", -4, 2)
-				self.Power:SetPoint("TOPRIGHT", self.Health, "BOTTOMRIGHT", -4, 2)
-			else
-				self.Power:SetPoint("TOPLEFT", self.Health, "BOTTOMLEFT", 4, 2)
-				self.Power:SetPoint("TOPRIGHT", self.Health, "BOTTOMRIGHT", 4, 2)
-			end
-			self.Power:CreateBackdrop("Default")
-			self.Power:SetFrameLevel(4)
-			if self.Power.backdrop then
-				self.Power.backdrop:SetFrameLevel(3)
-			end
-		elseif unit == "arena" or unit == "boss" then
+		if unit == "player" or unit == "target" or unit == "arena" or unit == "boss" then
 			self.Power:SetHeight(5 + C.unitframe.extra_power_height)
-			self.Power:SetPoint("TOPLEFT", self.Health, "BOTTOMLEFT", 0, -1)
-			self.Power:SetPoint("TOPRIGHT", self.Health, "BOTTOMRIGHT", 0, -1)
-		elseif unit == "arenatarget" then
-			self.Power:SetHeight(0)
 		else
 			self.Power:SetHeight(2)
-			self.Power:SetPoint("TOPLEFT", self.Health, "BOTTOMLEFT", 0, -1)
-			self.Power:SetPoint("TOPRIGHT", self.Health, "BOTTOMRIGHT", 0, -1)
 		end
+		self.Power:SetPoint("TOPLEFT", self.Health, "BOTTOMLEFT", 0, -1)
+		self.Power:SetPoint("TOPRIGHT", self.Health, "BOTTOMRIGHT", 0, -1)
 		self.Power:SetStatusBarTexture(C.media.texture)
 
 		self.Power.frequentUpdates = true
@@ -339,27 +246,15 @@ local function Shared(self, unit)
 		self.Info = T.SetFontString(self.Health, C.font.unit_frames_font, C.font.unit_frames_font_size, C.font.unit_frames_font_style)
 		self.Info:SetWordWrap(false)
 		if unit ~= "arenatarget" then
-			if unit == "target" then
-				-- 目标等级文本创建在生命值条上
-				self.Level = T.SetFontString(self.Health, C.font.unit_frames_font, C.font.unit_frames_font_size, C.font.unit_frames_font_style)
-			else
-				self.Level = T.SetFontString(self.Power, C.font.unit_frames_font, C.font.unit_frames_font_size, C.font.unit_frames_font_style)
-			end
+			self.Level = T.SetFontString(self.Power, C.font.unit_frames_font, C.font.unit_frames_font_size, C.font.unit_frames_font_style)
 		end
 		if unit == "target" then
-			-- 目标等级放置在生命值条最右侧，使用职业颜色
-			self.Level:SetPoint("RIGHT", self.Health, "RIGHT", -4, 0)
-			self:Tag(self.Level, "[GetNameColor][level]")
-
-			-- 目标名字放置在等级的左侧
-			self.Info:ClearAllPoints()
-			self.Info:SetPoint("RIGHT", self.Level, "LEFT", -4, 0)
+			self.Info:SetPoint("RIGHT", self.Health, "RIGHT", 0, 0)
+			self.Info:SetPoint("LEFT", self.Health.value, "RIGHT", 0, 0)
 			self.Info:SetJustifyH("RIGHT")
-			self:Tag(self.Info, "[GetNameColor][NameMedium]")
-
-			-- 目标外侧百分比文本放置在左侧外部
-			self.Health.percentage = T.SetFontString(self, C.font.unit_frames_font, C.font.unit_frames_font_size * 2, C.font.unit_frames_font_style)
-			self.Health.percentage:SetPoint("RIGHT", self, "LEFT", -8, 0)
+			self:Tag(self.Info, "[GetNameColor][NameLong]")
+			self.Level:SetPoint("RIGHT", self.Power, "RIGHT", 0, 0)
+			self:Tag(self.Level, "[cpoints] [Threat] [DiffColor][level][shortclassification]")
 		elseif unit == "focus" or unit == "pet" then
 			self.Info:SetPoint("LEFT", self.Health, "LEFT", 2, 0)
 			self.Info:SetPoint("RIGHT", self.Health.value, "LEFT", 0, 0)
@@ -418,21 +313,12 @@ local function Shared(self, unit)
 			self.LowMana.Text:SetAlpha(0)
 		end
 
-		-- Combat icon (战役指示图标，按图片移到左上角)
+		-- Combat icon
 		if C.unitframe.icons_combat then
 			self.CombatIndicator = self.Health:CreateTexture(nil, "OVERLAY")
 			self.CombatIndicator:SetSize(14, 14)
-			self.CombatIndicator:SetPoint("TOPLEFT", -4, 8)
+			self.CombatIndicator:SetPoint("TOPRIGHT", 4, 8)
 		end
-
-		-- 玩家等级显示在生命值条左侧，使用职业颜色
-		self.Level = T.SetFontString(self.Health, C.font.unit_frames_font, C.font.unit_frames_font_size, C.font.unit_frames_font_style)
-		self.Level:SetPoint("LEFT", self.Health, "LEFT", 4, 0)
-		self:Tag(self.Level, "[GetNameColor][level]")
-
-		-- 玩家生命百分比显示在框体右侧外部
-		self.Health.percentage = T.SetFontString(self, C.font.unit_frames_font, C.font.unit_frames_font_size * 2, C.font.unit_frames_font_style)
-		self.Health.percentage:SetPoint("LEFT", self, "RIGHT", 8, 0)
 
 		-- Resting icon
 		if C.unitframe.icons_resting then
@@ -865,13 +751,15 @@ local function Shared(self, unit)
 	-- Debuff icons
 	if unit == "pet" and C.aura.pet_debuffs or unit == "focus" and C.aura.focus_debuffs
 	or unit == "focustarget" and C.aura.fot_debuffs or unit == "targettarget" and C.aura.tot_debuffs then
-		self.Debuffs = CreateFrame("Frame", self:GetName().."_Debuffs", self)
-		self.Debuffs:SetHeight(165)
-		self.Debuffs:SetWidth(pet_width or 120)
+		self.Debuffs = self:CreateAuras({
+			growthY = "DOWN",
+			layoutLimit = pet_width + 5,
+		})
 		self.Debuffs.size = T.Scale(C.aura.debuff_size)
-		self.Debuffs.num = 4
-		self.Debuffs.spacing = T.Scale(3)
-		self.Debuffs.growthY = "DOWN"
+		self.Debuffs.showCount = true
+		self.Debuffs.elementSpacing = T.Scale(3)
+		self.Debuffs.PostCreateButton = T.PostCreateIcon
+
 		if unit == "pet" or unit == "focus" then
 			self.Debuffs:SetPoint("TOPRIGHT", self, "BOTTOMRIGHT", 2, -17)
 			self.Debuffs.initialAnchor = "TOPRIGHT"
@@ -881,9 +769,11 @@ local function Shared(self, unit)
 			self.Debuffs.initialAnchor = "TOPLEFT"
 			self.Debuffs.growthX = "RIGHT"
 		end
-		self.Debuffs.PostCreateButton = T.PostCreateIcon
-		self.Debuffs.PostUpdateButton = T.PostUpdateIcon
-		self.Debuffs.FilterAura = T.CustomFilter
+
+		self.Debuffs:AddGroup("HARMFUL", {
+			maxFrameCount = 4,
+			showDebuffBorder = true,
+		})
 
 		if unit == "pet" then
 			self:RegisterEvent("UNIT_PET", T.UpdateAllElements)
@@ -934,44 +824,30 @@ local function Shared(self, unit)
 				end
 			end
 
-			-- 接管 oUF 的 Portrait 渲染，避免地下城环境中加密 Token 拦截头像更新，并且实现 2D 材质头像降级回退
-			self.Portrait.Override = UpdatePortrait
-
 			if C.unitframe.portrait_type == "OVERLAY" then
-				if not self.PortraitWrapper then
-					self.PortraitWrapper = CreateFrame("Frame", self:GetName().."_PortraitWrapper", self.Health)
-					self.PortraitWrapper:SetPoint("TOPLEFT", self.Health, "TOPLEFT", 0, 0)
-					self.PortraitWrapper:SetPoint("BOTTOMLEFT", self.Health, "BOTTOMLEFT", 0, 0)
-					self.PortraitWrapper:SetPoint("RIGHT", self.Health:GetStatusBarTexture(), "RIGHT", 0, 0)
-					self.PortraitWrapper:SetClipsChildren(true)
-				end
-
-				self.Portrait:SetParent(self.PortraitWrapper)
+				local healthTex = self.Health:GetStatusBarTexture()
 				self.Portrait:ClearAllPoints()
-				self.Portrait:SetPoint("TOPLEFT", self.Health, "TOPLEFT", 0, 0)
-				self.Portrait:SetPoint("BOTTOMRIGHT", self.Health, "BOTTOMRIGHT", 0, 0)
-				self.Portrait:SetFrameLevel(self.Health:GetFrameLevel() + 1)
-				if self.Portrait.backdrop then
-					self.Portrait.backdrop:Hide()
-				end
-				self.Portrait:SetAlpha(0.35)
+				self.Portrait:SetPoint("TOPLEFT", healthTex, "TOPLEFT", 0, 0)
+				self.Portrait:SetPoint("BOTTOMRIGHT", healthTex, "BOTTOMRIGHT", 0, 1)
+				self.Portrait:SetFrameLevel(self.Health:GetFrameLevel())
+				self.Portrait.backdrop:Hide()
+				self.Portrait:SetAlpha(0.5)
 			end
 		end
 
 		if unit == "player" then
 			-- Debuffs on player
 			if C.aura.player_auras then
-				self.Debuffs = CreateFrame("Frame", self:GetName().."_Debuffs", self)
-				self.Debuffs:SetHeight(165)
-				self.Debuffs:SetWidth(player_width + 4)
+				self.Debuffs = self:CreateAuras({
+					initialAnchor = "BOTTOMRIGHT",
+					growthX = "LEFT",
+					layoutLimit = player_width + 5,
+				})
+				self.Debuffs.showCount = true
+				self.Debuffs.elementSpacing = T.Scale(3)
+				self.Debuffs.tooltipAnchor = "ANCHOR_TOPRIGHT"
 				self.Debuffs.size = T.Scale(C.aura.debuff_size)
-				self.Debuffs.spacing = T.Scale(3)
-				self.Debuffs.initialAnchor = "BOTTOMRIGHT"
-				self.Debuffs.growthX = "LEFT"
-				self.Debuffs.growthY = "UP"
 				self.Debuffs.PostCreateButton = T.PostCreateIcon
-				self.Debuffs.PostUpdateButton = T.PostUpdateIcon
-				self.Debuffs.FilterAura = T.CustomFilter
 
 				if (T.class == "DEATHKNIGHT" and C.unitframe_class_bar.rune)
 				or ((T.class == "DRUID" or T.class == "ROGUE") and C.unitframe_class_bar.combo and C.unitframe_class_bar.combo_old ~= true)
@@ -981,6 +857,12 @@ local function Shared(self, unit)
 				else
 					self.Debuffs:SetPoint("BOTTOMRIGHT", self, "TOPRIGHT", 2, 5)
 				end
+
+				self.Debuffs:AddGroup("HARMFUL", {
+					maxFrameCount = 10,
+					showDebuffBorder = true,
+				})
+
 			else
 				BuffFrame:Hide()
 				DebuffFrame:Hide()
@@ -990,22 +872,33 @@ local function Shared(self, unit)
 		if unit == "target" then
 			-- Auras on target
 			if C.aura.target_auras then
-				self.Auras = CreateFrame("Frame", self:GetName().."_Auras", self)
+				self.Auras = self:CreateAuras({
+					initialAnchor = "BOTTOMLEFT",
+					growthX = "RIGHT",
+					growthY = "UP",
+					layoutLimit = player_width + 5,
+				})
 				self.Auras:SetPoint("BOTTOMLEFT", self, "TOPLEFT", -2, 5)
-				self.Auras.initialAnchor = "BOTTOMLEFT"
-				self.Auras.growthX = "RIGHT"
-				self.Auras.growthY = "UP"
-				self.Auras.numDebuffs = 16
-				self.Auras.numBuffs = 32
-				self.Auras:SetHeight(165)
-				self.Auras:SetWidth(player_width - 6)
-				self.Auras.spacing = T.Scale(3)
+				self.Auras.showCount = true
+				self.Auras.elementSpacing = T.Scale(3)
+				self.Auras.lineSpacing = T.Scale(3)
 				self.Auras.size = T.Scale(C.aura.debuff_size)
-				self.Auras.gap = true
+				self.Auras.groupSpacing = T.Scale(C.aura.debuff_size)
+				self.Auras.groupLineSpacing = T.Scale(3)
+				self.Auras.tooltipAnchor = "ANCHOR_TOPRIGHT"
 				self.Auras.PostCreateButton = T.PostCreateIcon
-				self.Auras.PostUpdateButton = T.PostUpdateIcon
-				self.Auras.PostUpdateGapButton = T.PostUpdateGapButton
-				self.Auras.FilterAura = T.CustomFilter
+
+				--BETA self.Auras.FilterAura = T.CustomFilter -- find another way
+				-- self.Auras.PostUpdateButton = T.PostUpdateIcon -- need to change color of debuff and steal buff
+
+				self.Auras:AddGroup("HELPFUL", {
+					maxFrameCount = 32,
+				})
+
+				self.Auras:AddGroup("HARMFUL", {
+					maxFrameCount = 16,
+					showDebuffBorder = true,
+				})
 			end
 
 			-- Rogue/Druid Combo bar on target
@@ -1271,11 +1164,15 @@ local function Shared(self, unit)
 		self.FactionIcon:SetPoint("TOP", 0, 0)
 
 		-- Crowd control icon
-		self.Debuffs = CreateFrame("Frame", self:GetName().."_Debuffs", self)
-		self.Debuffs:SetSize(31 + T.extraHeight, 31 + T.extraHeight)
+		self.Debuffs = self:CreateAuras({
+			growthY = "DOWN",
+		})
 		self.Debuffs:SetFrameStrata("HIGH")
 		self.Debuffs.size = T.Scale(31 + T.extraHeight)
-		self.Debuffs.num = 1
+		self.Debuffs.showCount = true
+		self.Debuffs.elementSpacing = T.Scale(3)
+		self.Debuffs.PostCreateButton = T.PostCreateIcon
+
 		if C.unitframe.boss_on_right then
 			self.Debuffs:SetPoint("RIGHT", self, "LEFT", -5, 0)
 			self.Debuffs.initialAnchor = "RIGHT"
@@ -1286,10 +1183,9 @@ local function Shared(self, unit)
 			self.Debuffs.growthX = "RIGHT"
 		end
 
-		self.Debuffs.PostCreateButton = T.PostCreateIcon
-		self.Debuffs.PostUpdateButton = T.PostUpdateRaidButton
-
-		self.Debuffs.filter = "HARMFUL|CROWD_CONTROL"
+		self.Debuffs:AddGroup("HARMFUL|CROWD_CONTROL", {
+			maxFrameCount = 1,
+		})
 
 		--BETA self.AuraTracker = CreateFrame("Frame", self:GetName().."_AuraTracker", self)
 		-- self.AuraTracker:SetWidth(self.Trinket:GetWidth())
@@ -1350,7 +1246,16 @@ local function Shared(self, unit)
 
 		-- Auras on boss
 		if C.aura.boss_auras then
-			self.Auras = CreateFrame("Frame", self:GetName().."_Auras", self)
+			self.Auras = self:CreateAuras()
+			self.Auras.showCount = true
+			self.Auras.elementSpacing = T.Scale(3)
+			self.Auras.groupSpacing = T.Scale(C.aura.debuff_size)
+			self.Auras.tooltipAnchor = "ANCHOR_TOPRIGHT"
+			self.Auras.PostCreateButton = T.PostCreateIcon
+			self.Auras.size = T.Scale(31 + T.extraHeight)
+
+			--BETA self.Auras.FilterAura = T.CustomFilterBoss
+
 			if C.unitframe.boss_on_right then
 				self.Auras:SetPoint("RIGHT", self, "LEFT", -5, 0)
 				self.Auras.initialAnchor = "RIGHT"
@@ -1360,17 +1265,15 @@ local function Shared(self, unit)
 				self.Auras.initialAnchor = "LEFT"
 				self.Auras.growthX = "RIGHT"
 			end
-			self.Auras.numDebuffs = C.aura.boss_debuffs
-			self.Auras.numBuffs = C.aura.boss_buffs
-			self.Auras:SetHeight(31 + T.extraHeight)
-			self.Auras:SetWidth((34 + T.extraHeight) * (C.aura.boss_debuffs + C.aura.boss_buffs + 1))
-			self.Auras.spacing = T.Scale(3)
-			self.Auras.size = T.Scale(31 + T.extraHeight)
-			self.Auras.gap = true
-			self.Auras.PostCreateButton = T.PostCreateIcon
-			self.Auras.PostUpdateButton = T.PostUpdateIcon
-			self.Auras.PostUpdateGapButton = T.PostUpdateGapButton
-			self.Auras.FilterAura = T.CustomFilterBoss
+
+			self.Auras:AddGroup("HELPFUL", {
+				maxFrameCount = C.aura.boss_buffs,
+			})
+
+			self.Auras:AddGroup("HARMFUL", {
+				maxFrameCount = C.aura.boss_debuffs,
+				showDebuffBorder = true,
+			})
 		end
 
 		self:HookScript("OnShow", T.UpdateAllElements)
@@ -1445,44 +1348,37 @@ oUF:RegisterStyle("Shestak", Shared)
 local player = oUF:Spawn("player", "oUF_Player")
 player:SetPoint(unpack(C.position.unitframes.player))
 player:SetSize(player_width, 27 + T.extraHeight)
-player:SetFrameStrata("LOW")
 
 local target = oUF:Spawn("target", "oUF_Target")
 target:SetPoint(unpack(C.position.unitframes.target))
 target:SetSize(player_width, 27 + T.extraHeight)
-target:SetFrameStrata("LOW")
 
 if C.unitframe.show_pet then
 	local pet = oUF:Spawn("pet", "oUF_Pet")
 	pet:SetPoint(unpack(C.position.unitframes.pet))
 	pet:SetSize(pet_width, 16 + (C.unitframe.extra_health_height / 2))
-	pet:SetFrameStrata("LOW")
 end
 
 if C.unitframe.show_focus then
 	local focus = oUF:Spawn("focus", "oUF_Focus")
 	focus:SetPoint(unpack(C.position.unitframes.focus))
 	focus:SetSize(pet_width, 16 + (C.unitframe.extra_health_height / 2))
-	focus:SetFrameStrata("LOW")
 
 	local focustarget = oUF:Spawn("focustarget", "oUF_FocusTarget")
 	focustarget:SetPoint(unpack(C.position.unitframes.focus_target))
 	focustarget:SetSize(pet_width, 16 + (C.unitframe.extra_health_height / 2))
-	focustarget:SetFrameStrata("LOW")
 end
 
 if C.unitframe.show_target_target then
 	local targettarget = oUF:Spawn("targettarget", "oUF_TargetTarget")
 	targettarget:SetPoint(unpack(C.position.unitframes.target_target))
 	targettarget:SetSize(pet_width, 16 + (C.unitframe.extra_health_height / 2))
-	targettarget:SetFrameStrata("LOW")
 end
 
 if C.unitframe.show_boss then
 	local boss = {}
 	for i = 1, 10 do
 		boss[i] = oUF:Spawn("boss"..i, "oUF_Boss"..i)
-		boss[i]:SetFrameStrata("LOW")
 		if i == 1 then
 			if C.unitframe.boss_on_right then
 				boss[i]:SetPoint(unpack(C.position.unitframes.boss))
@@ -1500,7 +1396,6 @@ if C.unitframe.show_arena then
 	local arena = {}
 	for i = 1, 5 do
 		arena[i] = oUF:Spawn("arena"..i, "oUF_Arena"..i)
-		arena[i]:SetFrameStrata("LOW")
 		if i == 1 then
 			if C.unitframe.arena_on_right then
 				arena[i]:SetPoint(unpack(C.position.unitframes.arena))
@@ -1516,7 +1411,6 @@ if C.unitframe.show_arena then
 	local arenatarget = {}
 	for i = 1, 5 do
 		arenatarget[i] = oUF:Spawn("arena"..i.."target", "oUF_Arena"..i.."Target")
-		arenatarget[i]:SetFrameStrata("LOW")
 		if i == 1 then
 			if C.unitframe.arena_on_right then
 				arenatarget[i]:SetPoint("TOPLEFT", arena[i], "TOPRIGHT", 7, 0)
@@ -1691,12 +1585,10 @@ SLASH_TEST_UF4 = "/еуыега"
 if C.unitframe.lines then
 	local HorizontalPlayerLine = CreateFrame("Frame", "HorizontalPlayerLine", oUF_Player)
 	HorizontalPlayerLine:CreatePanel("ClassColor", player_width + 11, 1, "TOPLEFT", "oUF_Player", "BOTTOMLEFT", -5, -5)
-	HorizontalPlayerLine:SetFrameStrata("LOW")
 	HorizontalPlayerLine:SetBackdropBorderColor(T.color.r, T.color.g, T.color.b)
 
 	local VerticalPlayerLine = CreateFrame("Frame", "VerticalPlayerLine", oUF_Player)
 	VerticalPlayerLine:CreatePanel("ClassColor", 1, 98 + T.extraHeight + (C.unitframe.extra_health_height / 2), "TOPRIGHT", "oUF_Player", "TOPLEFT", -5, 30)
-	VerticalPlayerLine:SetFrameStrata("LOW")
 	VerticalPlayerLine:SetBackdropBorderColor(T.color.r, T.color.g, T.color.b)
 end
 
@@ -1706,7 +1598,6 @@ end
 if C.unitframe.lines then
 	local HorizontalTargetLine = CreateFrame("Frame", "HorizontalTargetLine", oUF_Target)
 	HorizontalTargetLine:CreatePanel("ClassColor", player_width + 11, 1, "TOPRIGHT", "oUF_Target", "BOTTOMRIGHT", 5, -5)
-	HorizontalTargetLine:SetFrameStrata("LOW")
 	HorizontalTargetLine:RegisterEvent("PLAYER_TARGET_CHANGED")
 	HorizontalTargetLine:SetScript("OnEvent", function(self)
 		local _, class = UnitClass("target")
@@ -1720,7 +1611,6 @@ if C.unitframe.lines then
 
 	local VerticalTargetLine = CreateFrame("Frame", "VerticalTargetLine", oUF_Target)
 	VerticalTargetLine:CreatePanel("ClassColor", 1, 98 + T.extraHeight + (C.unitframe.extra_health_height / 2), "TOPLEFT", "oUF_Target", "TOPRIGHT", 5, 30)
-	VerticalTargetLine:SetFrameStrata("LOW")
 	VerticalTargetLine:RegisterEvent("PLAYER_TARGET_CHANGED")
 	VerticalTargetLine:SetScript("OnEvent", function(self)
 		local _, class = UnitClass("target")

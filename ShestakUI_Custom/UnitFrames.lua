@@ -214,78 +214,48 @@ end
 
 -- 自定义头像更新函数，用于接管 oUF 的 Portrait 渲染，避开对 oUF 核心库的侵入性修改，适配 12.1.0 的安全 Token
 local function UpdatePortrait(self, event, unit)
-	if not unit then return end
-
-	local currentUnit = self.__unit or self.unit
-	local isMatch = false
-	if currentUnit == unit then
-		isMatch = true
-	elseif C_Secrets and C_Secrets.CanCompareUnitTokens then
-		local isOk, res = pcall(C_Secrets.CanCompareUnitTokens, currentUnit, unit)
-		if isOk then isMatch = res end
-	else
-		local isOk, res = pcall(UnitIsUnit, currentUnit, unit)
-		if isOk then isMatch = res end
-	end
-
-	if not isMatch then return end
+	local targetUnit = unit or self.__unit or self.unit
+	if not targetUnit then return end
 
 	local portrait = self.Portrait
 	if not portrait then return end
 
 	if portrait.PreUpdate then
-		portrait:PreUpdate(unit)
+		portrait:PreUpdate(targetUnit)
 	end
 
-	local is3D = portrait:IsObjectType("PlayerModel") or portrait:IsObjectType("CinematicModel")
-	local guid = UnitGUID(unit)
-	local isConnected = UnitIsConnected(unit)
-	local isVisible = UnitIsVisible(unit)
+	local guid = UnitGUID(targetUnit)
+	local isConnected = UnitIsConnected(targetUnit)
+	local isVisible = UnitIsVisible(targetUnit)
 
-	if is3D then
-		if not isConnected or not isVisible or not guid then
-			portrait:ClearModel()
-			if portrait.SetCamDistanceScale then
-				portrait:SetCamDistanceScale(1)
-			end
-			if portrait.Icon then
-				portrait.Icon:Show()
-				SetPortraitTexture(portrait.Icon, unit)
-			end
-		else
-			if portrait.Icon then
-				portrait.Icon:Hide()
-			end
-			portrait:ClearModel()
-			portrait:SetUnit(unit)
-			if portrait.SetCamDistanceScale then
-				portrait:SetCamDistanceScale(1)
-			end
-			if portrait.SetPosition then
-				portrait:SetPosition(0, 0, 0)
-			end
-			if portrait.SetRotation then
-				portrait:SetRotation(0)
-			end
-			if portrait.SetPortraitZoom then
-				portrait:SetPortraitZoom(1)
-			end
+	if not isConnected or not isVisible or not guid then
+		portrait:ClearModel()
+		if portrait.Icon then
+			portrait.Icon:Show()
+			SetPortraitTexture(portrait.Icon, targetUnit)
 		end
 	else
 		if portrait.Icon then
-			portrait.Icon:Show()
-			if not isConnected then
-				portrait.Icon:SetTexture([[Interface\CharacterFrame\Disconnect-Icon]])
-				portrait.Icon:SetTexCoord(0, 1, 0, 1)
-			else
-				SetPortraitTexture(portrait.Icon, unit)
-				portrait.Icon:SetTexCoord(0.1, 0.9, 0.1, 0.9)
-			end
+			portrait.Icon:Hide()
+		end
+		portrait:ClearModel()
+		portrait:SetUnit(targetUnit)
+		if portrait.SetCamDistanceScale then
+			portrait:SetCamDistanceScale(1)
+		end
+		if portrait.SetPosition then
+			portrait:SetPosition(0, 0, 0)
+		end
+		if portrait.SetRotation then
+			portrait:SetRotation(0)
+		end
+		if portrait.SetPortraitZoom then
+			portrait:SetPortraitZoom(1)
 		end
 	end
 
 	if portrait.PostUpdate then
-		portrait:PostUpdate(unit)
+		portrait:PostUpdate(targetUnit)
 	end
 end
 
@@ -336,8 +306,13 @@ local function CustomStyleUnitFrame(self, unit)
 			if self.Power.short_value then self.Power.short_value:SetText("") end
 		end
 
-		-- 3D 头像 OVERLAY 模式嵌入在生命条上并随当前血量动态裁剪
-		if C.unitframe.portrait_enable and (C.unitframe.portrait_type == "OVERLAY" or C.unitframe.portrait_type == "3D") and self.Portrait then
+		-- 3D 头像 OVERLAY 模式：若原生未创建则主动创建 PlayerModel，并在有效生命条内动态裁剪渲染
+		if C.unitframe.portrait_enable and (C.unitframe.portrait_type == "OVERLAY" or C.unitframe.portrait_type == "3D") then
+			if not self.Portrait then
+				self.Portrait = CreateFrame("PlayerModel", self:GetName().."_Portrait", self)
+				self.Portrait.__owner = self
+			end
+
 			if not self.PortraitWrapper then
 				self.PortraitWrapper = CreateFrame("Frame", self:GetName().."_PortraitWrapper", self.Health)
 				self.PortraitWrapper:SetPoint("TOPLEFT", self.Health, "TOPLEFT", 0, 0)
@@ -355,6 +330,7 @@ local function CustomStyleUnitFrame(self, unit)
 				self.Portrait.backdrop:Hide()
 			end
 			self.Portrait:SetAlpha(0.35)
+			self.Portrait:Show()
 
 			-- 挂载自定义 UpdatePortrait
 			self.Portrait.Override = UpdatePortrait
@@ -415,29 +391,43 @@ if oUF and oUF.RegisterInitCallback then
 	oUF:RegisterInitCallback(CustomStyleUnitFrame)
 end
 
--- 兼容可能已经生成的框架，并在登录时刷新一次状态
+-- 兼容已生成的框体并在关键事件驱动下刷新状态
 local frameList = {
-	"oUF_Player",
-	"oUF_Target",
+	{ name = "oUF_Player", unit = "player" },
+	{ name = "oUF_Target", unit = "target" },
 }
-local frame = CreateFrame("Frame")
-frame:RegisterEvent("PLAYER_ENTERING_WORLD")
-frame:RegisterEvent("PLAYER_TARGET_CHANGED")
-frame:SetScript("OnEvent", function(self, event)
-	for _, frameName in ipairs(frameList) do
-		local f = _G[frameName]
+
+local function RefreshCustomFrames(event)
+	for _, item in ipairs(frameList) do
+		local f = _G[item.name]
 		if f then
-			local unit = f.__unit or (frameName == "oUF_Player" and "player") or (frameName == "oUF_Target" and "target")
-			CustomStyleUnitFrame(f, unit)
+			CustomStyleUnitFrame(f, item.unit)
 			if f.Health and f.Health.PostUpdate then
-				f.Health:PostUpdate(unit, UnitHealth(unit), UnitHealthMax(unit))
+				f.Health:PostUpdate(item.unit, UnitHealth(item.unit), UnitHealthMax(item.unit))
 			end
 			if f.Power and f.Power.PostUpdate then
-				f.Power:PostUpdate(unit, UnitPower(unit), nil, UnitPowerMax(unit))
+				f.Power:PostUpdate(item.unit, UnitPower(item.unit), nil, UnitPowerMax(item.unit))
 			end
 			if f.Portrait and f.Portrait.Override then
-				pcall(f.Portrait.Override, f, event, unit)
+				pcall(f.Portrait.Override, f, event or "ForceUpdate", item.unit)
 			end
 		end
+	end
+end
+
+local listener = CreateFrame("Frame")
+listener:RegisterEvent("PLAYER_ENTERING_WORLD")
+listener:RegisterEvent("PLAYER_TARGET_CHANGED")
+listener:RegisterEvent("UNIT_PORTRAIT_UPDATE")
+listener:RegisterEvent("UNIT_MODEL_CHANGED")
+listener:SetScript("OnEvent", function(self, event, unit)
+	if event == "UNIT_PORTRAIT_UPDATE" or event == "UNIT_MODEL_CHANGED" then
+		if unit == "player" and _G.oUF_Player and _G.oUF_Player.Portrait and _G.oUF_Player.Portrait.Override then
+			pcall(_G.oUF_Player.Portrait.Override, _G.oUF_Player, event, "player")
+		elseif unit == "target" and _G.oUF_Target and _G.oUF_Target.Portrait and _G.oUF_Target.Portrait.Override then
+			pcall(_G.oUF_Target.Portrait.Override, _G.oUF_Target, event, "target")
+		end
+	else
+		RefreshCustomFrames(event)
 	end
 end)

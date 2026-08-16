@@ -25,6 +25,16 @@ health_value:SetType(Enum.LuaCurveType.Step)
 health_value:AddPoint(0, CreateColor(1, 1, 1, 1))
 health_value:AddPoint(1, CreateColor(1, 1, 1, 0))
 
+local power_value = C_CurveUtil.CreateColorCurve()
+power_value:SetType(Enum.LuaCurveType.Step)
+power_value:AddPoint(0, CreateColor(1, 1, 1, 1))
+power_value:AddPoint(1, CreateColor(1, 1, 1, 0))
+
+local full_power_value = C_CurveUtil.CreateColorCurve()
+full_power_value:SetType(Enum.LuaCurveType.Step)
+full_power_value:AddPoint(0, CreateColor(1, 1, 1, 0))
+full_power_value:AddPoint(1, CreateColor(1, 1, 1, 1))
+
 T.PostUpdateHealth = function(health, unit, cur, max)
 	if not health.value then return end
 
@@ -197,8 +207,10 @@ T.PostUpdatePower = function(power, unit, cur, _, max)
 
 		if power.short_value then
 			local color = UnitPowerPercent(unit, pType, true, power_value)
-			local _, _, _, alpha = color:GetRGBA()
-			power.value:SetAlpha(alpha)
+			if type(color) == "table" and color.GetRGBA then
+				local _, _, _, alpha = color:GetRGBA()
+				power.value:SetAlpha(alpha)
+			end
 
 			if C.unitframe.color_value then
 				power.short_value:SetText("|cff559655" .. T.ShortValue(max) .. "|r")
@@ -206,8 +218,10 @@ T.PostUpdatePower = function(power, unit, cur, _, max)
 				power.short_value:SetText("|cffffffff" .. T.ShortValue(max) .. "|r")
 			end
 			local colorFull = UnitPowerPercent(unit, pType, true, full_power_value)
-			local _, _, _, alphaFull = colorFull:GetRGBA()
-			power.short_value:SetAlpha(alphaFull)
+			if type(colorFull) == "table" and colorFull.GetRGBA then
+				local _, _, _, alphaFull = colorFull:GetRGBA()
+				power.short_value:SetAlpha(alphaFull)
+			end
 		end
 	end
 end

@@ -257,23 +257,7 @@ local function Shared(self, unit)
 
 	-- Raid Buffs
 	if C.raidframe.plugins_buffs == true and not (suffix == "pet" or suffix == "target" or suffix == "targettarget") then
-		-- T.CreateAuraWatch(self, unit) -- BETA
-
-		self.Buffs = self:CreateAuras({
-			initialAnchor = "TOPRIGHT",
-			growthX = "LEFT",
-		})
-
-		self.Buffs:SetPoint("TOPRIGHT", self, 0, 0)
-		self.Buffs.size = 8 * C.raidframe.icon_multiplier
-		self.Buffs.elementSpacing = T.Scale(3)
-		self.Buffs.showCount = true
-		self.Buffs.disableMouse = true
-		self.Buffs.PostCreateButton = T.CreateRaidBuffIcon
-
-		self.Buffs:AddGroup("HELPFUL|PLAYER|RAID_IN_COMBAT", {
-			maxFrameCount = 5,
-		})
+		T.CreateAuraWatch(self, unit)
 
 		-- Defensive buffs
 		self.Auras = self:CreateAuras({
@@ -285,6 +269,7 @@ local function Shared(self, unit)
 		self.Auras.elementSpacing = T.Scale(3)
 		self.Auras.size = 7 * C.raidframe.icon_multiplier
 		self.Auras.disableMouse = true
+		self.Auras.sortDirection = AuraContainerSortDirection.Reverse
 		self.Auras.PostCreateButton = T.CreateRaidBuffIcon
 
 		self.Auras:AddGroup("HELPFUL|EXTERNAL_DEFENSIVE", {
@@ -300,12 +285,23 @@ local function Shared(self, unit)
 		self.Debuffs.maxFrameCount = 1
 		self.Debuffs.disableMouse = true
 		self.Debuffs.showCount = true
+		self.Debuffs.isRaidDebuff = true
+		self.Debuffs.sortDirection = AuraContainerSortDirection.Reverse
 		self.Debuffs.PostCreateButton = T.PostCreateIcon
 
-		self.Debuffs:AddGroup("HARMFUL|RAID_IN_COMBAT")
-		self.Debuffs:AddGroup("HARMFUL|RAID")
-		self.Debuffs:AddGroup("HARMFUL|CROWD_CONTROL")
-		self.Debuffs:AddGroup("HARMFUL|IMPORTANT")
+		if C.raidframe.plugins_debuffs_filter then
+			self.Debuffs:AddGroup("HARMFUL|RAID_IN_COMBAT")
+			self.Debuffs:AddGroup("HARMFUL|RAID")
+			self.Debuffs:AddGroup("HARMFUL|CROWD_CONTROL")
+			self.Debuffs:AddGroup("HARMFUL|IMPORTANT")
+		else
+			self.Debuffs:AddGroup("HARMFUL|!PLAYER", {
+			  candidateFilters = {
+				maxDuration = 60,
+				excludeSpellIDs = T.RaidDebuffsIgnore
+			  }
+			})
+		end
 
 		-- Blizzard private auras
 		if C.raidframe.plugins_private_auras then
@@ -323,49 +319,6 @@ local function Shared(self, unit)
 
 			self.Debuffs:SetFrameLevel(7)
 		end
-
-		-- -- Raid debuffs
-		-- self.RaidDebuffs = CreateFrame("Frame", nil, self)
-		-- self.RaidDebuffs:SetSize(19, 19)
-		-- self.RaidDebuffs:SetPoint("CENTER", self, 0, 1)
-		-- self.RaidDebuffs:SetFrameStrata("MEDIUM")
-		-- self.RaidDebuffs:SetFrameLevel(10)
-		-- self.RaidDebuffs:SetTemplate("Default")
-
-		-- self.RaidDebuffs.icon = self.RaidDebuffs:CreateTexture(nil, "BORDER")
-		-- self.RaidDebuffs.icon:SetTexCoord(0.1, 0.9, 0.1, 0.9)
-		-- self.RaidDebuffs.icon:SetPoint("TOPLEFT", 2, -2)
-		-- self.RaidDebuffs.icon:SetPoint("BOTTOMRIGHT", -2, 2)
-
-		-- if C.raidframe.plugins_debuffs_timer == true then
-			-- self.RaidDebuffs.time = T.SetFontString(self.RaidDebuffs, C.font.unit_frames_font, C.font.unit_frames_font_size, C.font.unit_frames_font_style)
-			-- self.RaidDebuffs.time:SetPoint("CENTER", 1, 1)
-			-- self.RaidDebuffs.time:SetTextColor(1, 1, 1)
-		-- end
-
-		-- self.RaidDebuffs.count = T.SetFontString(self.RaidDebuffs, C.font.unit_frames_font, C.font.unit_frames_font_size, C.font.unit_frames_font_style)
-		-- self.RaidDebuffs.count:SetPoint("BOTTOMRIGHT", self.RaidDebuffs, "BOTTOMRIGHT", 3, -1)
-		-- self.RaidDebuffs.count:SetTextColor(1, 1, 1)
-
-		-- if C.aura.show_spiral == true then
-			-- self.RaidDebuffs.cd = CreateFrame("Cooldown", nil, self.RaidDebuffs, "CooldownFrameTemplate")
-			-- self.RaidDebuffs.cd:SetPoint("TOPLEFT", 2, -2)
-			-- self.RaidDebuffs.cd:SetPoint("BOTTOMRIGHT", -2, 2)
-			-- self.RaidDebuffs.cd:SetReverse(true)
-			-- self.RaidDebuffs.cd:SetDrawEdge(false)
-			-- self.RaidDebuffs.cd.noCooldownCount = true
-			-- self.RaidDebuffs.cd:SetHideCountdownNumbers(true)
-			-- self.RaidDebuffs.parent = CreateFrame("Frame", nil, self.RaidDebuffs)
-			-- self.RaidDebuffs.parent:SetFrameLevel(self.RaidDebuffs.cd:GetFrameLevel() + 1)
-			-- if C.raidframe.plugins_debuffs_timer == true then
-				-- self.RaidDebuffs.time:SetParent(self.RaidDebuffs.parent)
-			-- end
-			-- self.RaidDebuffs.count:SetParent(self.RaidDebuffs.parent)
-		-- end
-
-		-- self.RaidDebuffs.ShowDispellableDebuff = C.raidframe.plugins_debuffhighlight_icon
-		-- self.RaidDebuffs.FilterDispellableDebuff = true
-		-- self.RaidDebuffs.MatchBySpellName = true
 	end
 
 	-- Apply expert code

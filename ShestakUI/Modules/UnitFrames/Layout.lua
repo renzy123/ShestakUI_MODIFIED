@@ -758,6 +758,7 @@ local function Shared(self, unit)
 		self.Debuffs.size = T.Scale(C.aura.debuff_size)
 		self.Debuffs.showCount = true
 		self.Debuffs.elementSpacing = T.Scale(3)
+		self.Debuffs.sortDirection = AuraContainerSortDirection.Reverse
 		self.Debuffs.PostCreateButton = T.PostCreateIcon
 
 		if unit == "pet" or unit == "focus" then
@@ -845,7 +846,9 @@ local function Shared(self, unit)
 				self.Debuffs.showCount = true
 				self.Debuffs.elementSpacing = T.Scale(3)
 				self.Debuffs.tooltipAnchor = "ANCHOR_TOPRIGHT"
+				self.Debuffs.tooltipOffsetY = 3
 				self.Debuffs.size = T.Scale(C.aura.debuff_size)
+				self.Debuffs.sortDirection = AuraContainerSortDirection.Reverse
 				self.Debuffs.PostCreateButton = T.PostCreateIcon
 
 				if (T.class == "DEATHKNIGHT" and C.unitframe_class_bar.rune)
@@ -878,24 +881,32 @@ local function Shared(self, unit)
 				})
 				self.Auras:SetPoint("BOTTOMLEFT", self, "TOPLEFT", -2, 5)
 				self.Auras.showCount = true
+				self.Auras.maxFrameCount = 16
 				self.Auras.elementSpacing = T.Scale(3)
 				self.Auras.lineSpacing = T.Scale(3)
 				self.Auras.size = T.Scale(C.aura.debuff_size)
-				self.Auras.groupSpacing = T.Scale(C.aura.debuff_size)
 				self.Auras.groupLineSpacing = T.Scale(3)
-				self.Auras.tooltipAnchor = "ANCHOR_TOPRIGHT"
+				self.Auras.tooltipAnchor = "ANCHOR_TOPLEFT"
+				self.Auras.tooltipOffsetY = 3
+				self.Auras.sortDirection = AuraContainerSortDirection.Reverse
 				self.Auras.PostCreateButton = T.PostCreateIcon
 
 				--BETA self.Auras.FilterAura = T.CustomFilter -- find another way
 				-- self.Auras.PostUpdateButton = T.PostUpdateIcon -- need to change color of debuff and steal buff
 
-				self.Auras:AddGroup("HELPFUL", {
-					maxFrameCount = 32,
+				self.Auras:AddGroup("HELPFUL")
+
+				self.Auras:AddGroup("HARMFUL|PLAYER", {
+					layout = {
+						groupSpacing = T.Scale(C.aura.debuff_size + 3)
+					},
 				})
 
-				self.Auras:AddGroup("HARMFUL", {
-					maxFrameCount = 16,
-				})
+				if not C.aura.player_aura_only then
+					self.Auras:AddGroup("HARMFUL|!PLAYER", {
+						notPlayerDebuff = true,
+					})
+				end
 			end
 
 			-- Rogue/Druid Combo bar on target
@@ -1168,6 +1179,7 @@ local function Shared(self, unit)
 		self.Debuffs.size = T.Scale(31 + T.extraHeight)
 		self.Debuffs.showCount = true
 		self.Debuffs.elementSpacing = T.Scale(3)
+		self.Debuffs.sortDirection = AuraContainerSortDirection.Reverse
 		self.Debuffs.PostCreateButton = T.PostCreateIcon
 
 		if C.unitframe.boss_on_right then
@@ -1248,6 +1260,8 @@ local function Shared(self, unit)
 			self.Auras.elementSpacing = T.Scale(3)
 			self.Auras.groupSpacing = T.Scale(C.aura.debuff_size)
 			self.Auras.tooltipAnchor = "ANCHOR_TOPRIGHT"
+			self.Auras.tooltipOffsetY = 3
+			self.Auras.sortDirection = AuraContainerSortDirection.Reverse
 			self.Auras.PostCreateButton = T.PostCreateIcon
 			self.Auras.size = T.Scale(31 + T.extraHeight)
 
@@ -1267,7 +1281,7 @@ local function Shared(self, unit)
 				maxFrameCount = C.aura.boss_buffs,
 			})
 
-			self.Auras:AddGroup("HARMFUL", {
+			self.Auras:AddGroup("HARMFUL|PLAYER", {
 				maxFrameCount = C.aura.boss_debuffs,
 			})
 		end

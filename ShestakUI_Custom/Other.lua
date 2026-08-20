@@ -49,3 +49,40 @@ trackerFixFrame:SetScript("OnEvent", function(self, event, addon)
 	end
 end)
 
+----------------------------------------------------------------------------------------
+-- 3. 冷却框架 (CooldownFrame_Set) 机密值 (Secret Number) 安全绕行防护补丁
+-- 解决暴雪 12.1.0 下 Cooldown.lua:3 对 secret number 类型的 start/duration 执行比较 (start > 0)
+-- 触发 'attempt to compare local start (a secret number value)' 致命错误的问题。
+----------------------------------------------------------------------------------------
+local function WrapCooldownFrameSet()
+	if not _G.CooldownFrame_Set or _G.CooldownFrame_Set.__shestak_custom_wrapped then return end
+
+	local origCooldownFrame_Set = _G.CooldownFrame_Set
+	_G.CooldownFrame_Set = function(self, start, duration, enable, forceShowDrawEdge, modRate)
+		if not self or self:IsForbidden() then return end
+
+		-- 若 start 或 duration 是机密数字 (Secret Number)，跳过 Lua 层的数值比较，直接安全调用底层 C 接口
+		if issecretvalue(start) or issecretvalue(duration) then
+			pcall(self.SetCooldown, self, start, duration, modRate)
+			if forceShowDrawEdge ~= nil and self.SetDrawEdge then
+				pcall(self.SetDrawEdge, self, forceShowDrawEdge)
+			end
+			self:Show()
+			return
+		end
+
+		return origCooldownFrame_Set(self, start, duration, enable, forceShowDrawEdge, modRate)
+	end
+	_G.CooldownFrame_Set.__shestak_custom_wrapped = true
+end
+
+WrapCooldownFrameSet()
+
+local cooldownFixFrame = CreateFrame("Frame")
+cooldownFixFrame:RegisterEvent("ADDON_LOADED")
+cooldownFixFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+cooldownFixFrame:SetScript("OnEvent", function(self, event, addon)
+	WrapCooldownFrameSet()
+end)
+
+

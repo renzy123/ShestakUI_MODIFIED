@@ -1,4 +1,5 @@
 local T, C, L = unpack(ShestakUI)
+if C.skins.blizzard_frames ~= true or (C.quest and C.quest.objective_tracker == false) then return end
 
 ----------------------------------------------------------------------------------------
 --	Move ObjectiveTrackerFrame and hide background

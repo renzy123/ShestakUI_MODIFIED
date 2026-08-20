@@ -23,3 +23,8 @@ if C.raidframe then
 	C.raidframe.party_spacing = 14
 	C.raidframe.dps_party_vertical_spacing = 14
 end
+
+-- 任务追踪配置：禁用插件美化，使用暴雪原生任务追踪模块
+C.quest = C.quest or {}
+C.quest.objective_tracker = false
+

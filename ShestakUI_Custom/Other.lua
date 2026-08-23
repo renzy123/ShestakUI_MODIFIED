@@ -18,5 +18,21 @@ if C.filger and C.filger.enable then
 	end)
 end
 
+----------------------------------------------------------------------------------------
+-- 2. 安全版 T.HasPlayerBuff
+-- 使用 12.1.0 官方公开安全的槽位检索接口，杜绝 GetAuraDataByIndex 触发 Secret Taint
+----------------------------------------------------------------------------------------
+T.HasPlayerBuff = function(spell)
+	local slots = { UnitAuraSlots("player", "HELPFUL") }
+	for _, slot in ipairs(slots) do
+		local auraData = C_UnitAuras.GetAuraDataBySlot("player", slot)
+		if auraData and auraData.name == spell then
+			return true
+		end
+	end
+	return nil
+end
+
+
 
 

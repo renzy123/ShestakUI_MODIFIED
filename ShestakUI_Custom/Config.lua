@@ -14,7 +14,8 @@ end
 if C.unitframe then
 	C.unitframe.portrait_enable = true
 	C.unitframe.portrait_type = "OVERLAY"
-	C.unitframe.show_player_power = false -- 玩家框体不显示能量/法力数值
+	C.unitframe.show_player_power = false    -- 玩家框体不显示能量/法力数值
+	C.unitframe.show_player_castbar = false  -- 玩家施法条开关（true 为显示，false 为隐藏）
 end
 
 -- 团队/小队框体配置：小队队友不显示能量数值，小队纵向间距设为 14（可自由调整）

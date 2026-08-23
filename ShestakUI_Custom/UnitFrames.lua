@@ -373,6 +373,23 @@ local function CustomStyleUnitFrame(self, unit)
 				self.CombatIndicator:ClearAllPoints()
 				self.CombatIndicator:SetPoint("TOPLEFT", -4, 8)
 			end
+
+			-- 玩家施法条控制：根据配置决定是否隐藏并注销玩家施法条
+			if C.unitframe.show_player_castbar == false and self.Castbar then
+				if oUF and oUF.DisableElement then
+					pcall(oUF.DisableElement, self, "Castbar")
+				end
+				self.Castbar:Hide()
+				self.Castbar.Show = function() end
+				if self.Castbar.Button then
+					self.Castbar.Button:Hide()
+					self.Castbar.Button.Show = function() end
+				end
+				if self.Castbar.Overlay then
+					self.Castbar.Overlay:Hide()
+					self.Castbar.Overlay.Show = function() end
+				end
+			end
 		elseif realUnit == "target" then
 			-- 目标等级放置在生命值条最右侧
 			if not self.Level then

@@ -25,13 +25,7 @@ local function Shared(self, unit)
 
 	-- Register click
 	self:RegisterForClicks("AnyUp")
-	self:SetScript("OnEnter", function(self)
-		local unit = self.__unit
-		if unit then
-			self.unit = unit
-			UnitFrame_OnEnter(self)
-		end
-	end)
+	self:SetScript("OnEnter", T.UnitFrame_OnEnter)
 	self:SetScript("OnLeave", UnitFrame_OnLeave)
 
 	local unit = (unit and unit:find("arena%dtarget")) and "arenatarget"
@@ -958,9 +952,8 @@ local function Shared(self, unit)
 			self.Status:SetPoint("CENTER", self.Health, "CENTER", 0, 0)
 			self.Status:SetTextColor(0.69, 0.31, 0.31)
 			self.Status:Hide()
-			self.Status.Override = T.dummy
 
-			self:SetScript("OnEnter", function(self) if self.LowMana then self.LowMana.Text:Hide() end T.UpdatePvPStatus(self) self.Status:Show() UnitFrame_OnEnter(self) end)
+			self:SetScript("OnEnter", function(self) if self.LowMana then self.LowMana.Text:Hide() end T.UpdatePvPStatus(self) self.Status:Show() T.UnitFrame_OnEnter(self) end)
 			self:SetScript("OnLeave", function(self) if self.LowMana then self.LowMana.Text:Show() end self.Status:Hide() UnitFrame_OnLeave(self) end)
 		end
 	end
@@ -1304,7 +1297,8 @@ local function Shared(self, unit)
 	end
 
 	-- Dispel highlight
-	if C.raidframe.plugins_debuffhighlight and not unit:match("%wtarget$") then
+	-- if C.raidframe.plugins_debuffhighlight and not unit:match("%wtarget$") then
+	if C.raidframe.plugins_debuffhighlight and (unit == "player" or unit == "pet") then -- Can't filter enemy now
 		T.DispelColor(self)
 	end
 

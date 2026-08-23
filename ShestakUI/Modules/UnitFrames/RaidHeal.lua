@@ -36,7 +36,7 @@ local function Shared(self, unit)
 
 	-- Register click
 	self:RegisterForClicks("AnyUp")
-	self:SetScript("OnEnter", UnitFrame_OnEnter)
+	self:SetScript("OnEnter", T.UnitFrame_OnEnter)
 	self:SetScript("OnLeave", UnitFrame_OnLeave)
 
 	-- Backdrop for every units
@@ -297,7 +297,8 @@ local function Shared(self, unit)
 		else
 			self.Debuffs:AddGroup("HARMFUL|!PLAYER", {
 			  candidateFilters = {
-				maxDuration = 60,
+				isFromPlayerOrPlayerPet = false,
+				-- maxDuration = 60,
 				excludeSpellIDs = T.RaidDebuffsIgnore
 			  }
 			})

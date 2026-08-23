@@ -350,7 +350,16 @@ local function SkinProgressBar(tracker, key)
 		if bar.BorderLeft then bar.BorderLeft:SetAlpha(0) end
 		if bar.BorderRight then bar.BorderRight:SetAlpha(0) end
 		if bar.BorderMid then bar.BorderMid:SetAlpha(0) end
-		if progressBar.PlayFlareAnim then progressBar.PlayFlareAnim  = T.dummy end -- hide animation
+
+		-- Hide animation
+		if progressBar.PlayFlareAnim then
+			local barFlare = progressBar["FullBarFlare1"]
+			if barFlare and barFlare.FlareAnim then
+				hooksecurefunc(barFlare.FlareAnim, "Play", function()
+					barFlare.FlareAnim:Stop()
+				end)
+			end
+		end
 
 		bar:SetSize(200, 16)
 		bar:SetStatusBarTexture(C.media.texture)

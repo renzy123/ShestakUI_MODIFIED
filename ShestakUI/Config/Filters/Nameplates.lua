@@ -22,6 +22,8 @@ T.DebuffWhiteList = {
 	[47476] = true,		-- Strangulate
 	[55078] = true,		-- Blood Plague
 	[55095] = true,		-- Frost Fever
+	-- Demon Hunter
+	[204598] = true,	-- Sigil of Flame
 	-- Druid
 	[33786] = true,		-- Cyclone
 	[339] = true,		-- Entangling Roots
@@ -57,6 +59,7 @@ T.DebuffWhiteList = {
 	[15487] = true,		-- Silence
 	[589] = true,		-- Shadow Word: Pain
 	[34914] = true,		-- Vampiric Touch
+	[335467] = true,	-- Shadow Word: Madness
 	-- Rogue
 	[6770] = true,		-- Sap
 	[2094] = true,		-- Blind
@@ -79,7 +82,7 @@ T.DebuffWhiteList = {
 	[146739] = true,	-- Corruption
 	[48181] = true,		-- Haunt
 	[348] = true,		-- Immolate
-	[30108] = true,		-- Unstable Affliction
+	[1259790] = true,	-- Unstable Affliction
 	-- Warrior
 	[5246] = true,		-- Intimidating Shout
 	[132168] = true,	-- Shockwave

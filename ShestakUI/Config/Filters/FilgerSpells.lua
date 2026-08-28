@@ -106,8 +106,6 @@ C["filger_spells"] = {
 			BarWidth = 186,
 			Position = {"LEFT", T_DE_BUFF_BAR_Anchor},
 
-			-- Festering Wound
-			--BETA {spellID = 194310, unitID = "target", caster = "player", filter = "DEBUFF"},
 			-- Virulent Plague
 			{spellID = 191587, unitID = "target", caster = "player", filter = "DEBUFF"},
 			-- Blood Plague
@@ -618,8 +616,6 @@ C["filger_spells"] = {
 			Position = {"TOP", P_PROC_ICON_Anchor},
 
 			-- Buffs
-			-- Snapfire
-			--BETA {spellID = 370818, unitID = "player", caster = "player", filter = "BUFF"},
 			-- Essence Burst
 			{spellID = 359618, unitID = "player", caster = "player", filter = "BUFF"},
 			-- Leaping Flames
@@ -811,7 +807,7 @@ C["filger_spells"] = {
 			-- Mok'Nathal Tactics
 			{spellID = 201081, unitID = "player", caster = "player", filter = "BUFF"},
 			-- Mongoose Fury
-			--BETA {spellID = 190931, unitID = "player", caster = "player", filter = "BUFF"},
+			{spellID = 1252708, unitID = "player", caster = "player", filter = "BUFF"},
 			-- Beast Cleave
 			{spellID = 118455, unitID = "pet", caster = "player", filter = "BUFF"},
 			-- Mend Pet
@@ -1598,7 +1594,7 @@ C["filger_spells"] = {
 			{spellID = 34914, unitID = "target", caster = "player", filter = "DEBUFF"},
 			-- Shadow Word: Pain
 			{spellID = 589, unitID = "target", caster = "player", filter = "DEBUFF"},
-			-- Devouring Plague
+			-- Shadow Word: Madness
 			{spellID = 335467, unitID = "target", caster = "player", filter = "DEBUFF"},
 			-- Purge the Wicked
 			{spellID = 204197, unitID = "target", caster = "player", filter = "DEBUFF"},
@@ -1812,16 +1808,12 @@ C["filger_spells"] = {
 			{spellID = 79140, unitID = "target", caster = "player", filter = "DEBUFF"},
 			-- Nightblade
 			{spellID = 195452, unitID = "target", caster = "player", filter = "DEBUFF"},
-			-- Ghostly Strike
-			--BETA {spellID = 196937, unitID = "target", caster = "player", filter = "DEBUFF"},
 			-- Deadly Poison
 			{spellID = 2818, unitID = "target", caster = "player", filter = "DEBUFF"},
 			-- Crippling Poison
 			{spellID = 3409, unitID = "target", caster = "player", filter = "DEBUFF"},
 			-- Wound Poison
 			{spellID = 8680, unitID = "target", caster = "player", filter = "DEBUFF"},
-			-- Crimson Tempest
-			--BETA {spellID = 121411, unitID = "target", caster = "player", filter = "DEBUFF"},
 		},
 		{
 			Name = "PVE/PVP_CC",
@@ -1879,8 +1871,6 @@ C["filger_spells"] = {
 			{spellID = 13750, filter = "CD"},
 			-- Between the Eyes
 			{spellID = 315341, filter = "CD"},
-			-- Riposte
-			--BETA {spellID = 199754, filter = "CD"},
 			-- Cloak of Shadows
 			{spellID = 31224, filter = "CD"},
 			-- Grappling Hook
@@ -1889,8 +1879,6 @@ C["filger_spells"] = {
 			{spellID = 185311, filter = "CD"},
 			-- Garrote
 			{spellID = 703, filter = "CD"},
-			-- Exsanguinate
-			--BETA {spellID = 200806, filter = "CD"},
 			-- Shadowstep
 			{spellID = 36554, filter = "CD"},
 			-- Evasion
@@ -2031,8 +2019,6 @@ C["filger_spells"] = {
 			{spellID = 117014, filter = "CD"},
 			-- Feral Lunge
 			{spellID = 196884, filter = "CD"},
-			-- Cloudburst Totem
-			--BETA {spellID = 157153, filter = "CD"},
 			-- Earthbind Totem
 			{spellID = 2484, filter = "CD"},
 			-- Thunderstorm
@@ -2078,7 +2064,7 @@ C["filger_spells"] = {
 			-- Empowered Life Tap
 			{spellID = 235156, unitID = "player", caster = "player", filter = "BUFF"},
 			-- Soul Swap
-			--BETA {spellID = 86211, unitID = "player", caster = "player", filter = "BUFF"},
+			{spellID = 399680, unitID = "player", caster = "player", filter = "BUFF"},
 			-- Dark Regeneration
 			{spellID = 108359, unitID = "player", caster = "player", filter = "BUFF"},
 			-- Burning Rush
@@ -2100,6 +2086,8 @@ C["filger_spells"] = {
 			Position = {"TOP", P_PROC_ICON_Anchor},
 
 			-- Buffs
+			-- Nightfall
+			{spellID = 264571, unitID = "player", caster = "player", filter = "BUFF"},
 			-- Backdraft
 			{spellID = 117828, unitID = "player", caster = "player", filter = "BUFF"},
 			-- Grimore of Synergy
@@ -2142,9 +2130,7 @@ C["filger_spells"] = {
 			-- Immolate
 			{spellID = 348, unitID = "target", caster = "player", filter = "DEBUFF"},
 			-- Unstable Affliction
-			{spellID = 316099, unitID = "target", caster = "player", filter = "DEBUFF", absID = true},
-			-- Unstable Affliction (PvP Talent)
-			{spellID = 342938, unitID = "target", caster = "player", filter = "DEBUFF", absID = true},
+			{spellID = 1259790, unitID = "target", caster = "player", filter = "DEBUFF", absID = true},
 			-- Siphon Life
 			{spellID = 63106, unitID = "target", caster = "player", filter = "DEBUFF"},
 			-- Soul Effigy
@@ -3300,6 +3286,8 @@ local SpellGroups = {}
 T.Filger_P_BUFF = {}
 T.Filger_P_PROC = {}
 T.Filger_T_DEBUFF = {}
+T.Filger_T_BAR = {}
+T.Filger_S_P_BUFF = {}
 
 if C["filger_spells"] and C["filger_spells"]["ALL"] then
 	if not C["filger_spells"][T.class] then
@@ -3406,7 +3394,9 @@ if C["filger_spells"] and C["filger_spells"][T.class] then
 				else
 					if data.Name == "P_BUFF_ICON" and data[j].spellID then T.Filger_P_BUFF[data[j].spellID] = true end
 					if data.Name == "P_PROC_ICON" and data[j].spellID then T.Filger_P_PROC[data[j].spellID] = true end
-					if (data.Name == "T_DEBUFF_ICON" or data.Name == "T_DE/BUFF_BAR") and data[j].spellID then T.Filger_T_DEBUFF[data[j].spellID] = true end
+					if data.Name == "T_DEBUFF_ICON" and data[j].spellID then T.Filger_T_DEBUFF[data[j].spellID] = true end
+					if data.Name == "T_DE/BUFF_BAR" and data[j].spellID then T.Filger_T_BAR[data[j].spellID] = true end
+					if data.Name == "SPECIAL_P_BUFF_ICON" and data[j].spellID then T.Filger_S_P_BUFF[data[j].spellID] = true end
 
 					local info = data[j].spellID and C_Spell.GetSpellInfo(data[j].spellID)
 					local id = data[j].absID and data[j].spellID or (info and info.name) or data[j].slotID

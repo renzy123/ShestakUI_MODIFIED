@@ -298,16 +298,11 @@ local function CustomStyleUnitFrame(self, unit)
 			self.Health.bg.multiplier = 0 -- 纯黑背景
 		end
 
-		-- 能量条高度与层级在下，与生命值条横向错位重叠
+		-- 能量条高度与层级在下，与生命值条保持严格左右对齐（不再错位显示）
 		self.Power:SetHeight(7 + (C.unitframe.extra_power_height or 0))
 		self.Power:ClearAllPoints()
-		if realUnit == "player" then
-			self.Power:SetPoint("TOPLEFT", self.Health, "BOTTOMLEFT", -4, 2)
-			self.Power:SetPoint("TOPRIGHT", self.Health, "BOTTOMRIGHT", -4, 2)
-		else
-			self.Power:SetPoint("TOPLEFT", self.Health, "BOTTOMLEFT", 4, 2)
-			self.Power:SetPoint("TOPRIGHT", self.Health, "BOTTOMRIGHT", 4, 2)
-		end
+		self.Power:SetPoint("TOPLEFT", self.Health, "BOTTOMLEFT", 0, -1)
+		self.Power:SetPoint("TOPRIGHT", self.Health, "BOTTOMRIGHT", 0, -1)
 		self.Power:CreateBackdrop("Default")
 		self.Power:SetFrameLevel(4)
 		if self.Power.backdrop then
@@ -391,21 +386,25 @@ local function CustomStyleUnitFrame(self, unit)
 				end
 			end
 		elseif realUnit == "target" then
-			-- 目标等级放置在生命值条最右侧
+			-- 目标名字直接右对齐在生命条最右端，紧贴边缘不留间隙
+			if self.Info then
+				self.Info:ClearAllPoints()
+				self.Info:SetPoint("RIGHT", self.Health, "RIGHT", 0, 0)
+				self.Info:SetJustifyH("RIGHT")
+				self:Tag(self.Info, "[GetNameColor][NameMedium]")
+			end
+
+			-- 目标等级放置在名字的左侧（紧随其后）
 			if not self.Level then
 				self.Level = T.SetFontString(self.Health, C.font.unit_frames_font, C.font.unit_frames_font_size, C.font.unit_frames_font_style)
 			end
 			self.Level:ClearAllPoints()
-			self.Level:SetPoint("RIGHT", self.Health, "RIGHT", -4, 0)
-			self:Tag(self.Level, "[GetNameColor][level]")
-
-			-- 目标名字放置在等级的左侧
 			if self.Info then
-				self.Info:ClearAllPoints()
-				self.Info:SetPoint("RIGHT", self.Level, "LEFT", -4, 0)
-				self.Info:SetJustifyH("RIGHT")
-				self:Tag(self.Info, "[GetNameColor][NameMedium]")
+				self.Level:SetPoint("RIGHT", self.Info, "LEFT", -2, 0)
+			else
+				self.Level:SetPoint("RIGHT", self.Health, "RIGHT", 0, 0)
 			end
+			self:Tag(self.Level, "[GetNameColor][level]")
 
 			-- 目标外侧百分比文本放置在左侧外部
 			if not self.Health.percentage then

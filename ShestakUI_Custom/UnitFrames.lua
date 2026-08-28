@@ -298,11 +298,11 @@ local function CustomStyleUnitFrame(self, unit)
 			self.Health.bg.multiplier = 0 -- 纯黑背景
 		end
 
-		-- 能量条高度与层级在下，与生命值条保持严格左右对齐（不再错位显示）
-		self.Power:SetHeight(7 + (C.unitframe.extra_power_height or 0))
+		-- 能量条高度固定为 4px，与生命值条保持严格左右对齐，且纵向留出 1px 可视间隙
+		self.Power:SetHeight(4)
 		self.Power:ClearAllPoints()
-		self.Power:SetPoint("TOPLEFT", self.Health, "BOTTOMLEFT", 0, -1)
-		self.Power:SetPoint("TOPRIGHT", self.Health, "BOTTOMRIGHT", 0, -1)
+		self.Power:SetPoint("TOPLEFT", self.Health, "BOTTOMLEFT", 0, -3)
+		self.Power:SetPoint("TOPRIGHT", self.Health, "BOTTOMRIGHT", 0, -3)
 		self.Power:CreateBackdrop("Default")
 		self.Power:SetFrameLevel(4)
 		if self.Power.backdrop then

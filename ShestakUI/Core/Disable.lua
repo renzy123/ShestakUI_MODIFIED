@@ -38,7 +38,7 @@ if C_AddOns.IsAddOnLoaded("Grid") or C_AddOns.IsAddOnLoaded("Grid2") or C_AddOns
 	C.raidframe.auto_position = "NONE"
 end
 
-if C_AddOns.IsAddOnLoaded("TidyPlates") or C_AddOns.IsAddOnLoaded("nPlates") or C_AddOns.IsAddOnLoaded("Kui_Nameplates") or C_AddOns.IsAddOnLoaded("rNamePlates") or C_AddOns.IsAddOnLoaded("EKplates") or C_AddOns.IsAddOnLoaded("bdNameplates") or C_AddOns.IsAddOnLoaded("Plater") or C_AddOns.IsAddOnLoaded("Nameplates") or C_AddOns.IsAddOnLoaded("NeatPlates") or C_AddOns.IsAddOnLoaded("Platynator") then
+if C_AddOns.IsAddOnLoaded("TidyPlates") or C_AddOns.IsAddOnLoaded("nPlates") or C_AddOns.IsAddOnLoaded("Kui_Nameplates") or C_AddOns.IsAddOnLoaded("rNamePlates") or C_AddOns.IsAddOnLoaded("EKplates") or C_AddOns.IsAddOnLoaded("bdNameplates") or C_AddOns.IsAddOnLoaded("Plater") or C_AddOns.IsAddOnLoaded("Nameplates") or C_AddOns.IsAddOnLoaded("NeatPlates") or C_AddOns.IsAddOnLoaded("Platynator") or C_AddOns.IsAddOnLoaded("EllesmereUINameplates") then
 	C.nameplate.enable = false
 end
 

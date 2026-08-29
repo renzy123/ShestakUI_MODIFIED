@@ -1476,6 +1476,7 @@ do
 		{"my_role_play"},
 		{"opie"},
 		{"plater"},
+		{"ellesmere_nameplates"},
 		{"postal"},
 		{"rarescanner"},
 		{"rematch"},

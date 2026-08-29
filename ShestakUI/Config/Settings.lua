@@ -71,6 +71,7 @@ C["skins"] = {
 	["my_role_play"] = false,					-- MyRolePlay skin
 	["opie"] = false,							-- OPie skin
 	["plater"] = false,							-- Plater skin
+	["ellesmere_nameplates"] = false,			-- EllesmereUINameplates skin
 	["postal"] = false,							-- Postal skin
 	["rarescanner"] = false,					-- RareScanner skin
 	["rematch"] = false,						-- Rematch skin

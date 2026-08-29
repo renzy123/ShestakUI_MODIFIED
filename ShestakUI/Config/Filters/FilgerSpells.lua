@@ -409,7 +409,8 @@ C["filger_spells"] = {
 			-- Bloodtalons
 			{spellID = 145152, unitID = "player", caster = "player", filter = "BUFF"},
 			-- Clearcasting
-			{spellID = 16870, unitID = "player", caster = "player", filter = "BUFF"},
+			{spellID = 16870, unitID = "player", caster = "player", filter = "BUFF", absID = true},
+			{spellID = 135700, unitID = "player", caster = "player", filter = "BUFF", absID = true},
 			-- Soul of the Forest
 			{spellID = 114108, unitID = "player", caster = "player", filter = "BUFF"},
 			-- Predatory Swiftness
@@ -826,6 +827,8 @@ C["filger_spells"] = {
 			{spellID = 194599, unitID = "target", caster = "player", filter = "DEBUFF"},
 			-- Serpent Sting
 			{spellID = 87935, unitID = "target", caster = "player", filter = "DEBUFF"},
+			-- Barbed Shot
+			{spellID = 217200, unitID = "target", caster = "player", filter = "DEBUFF"},
 			-- Lacerate
 			{spellID = 185855, unitID = "target", caster = "player", filter = "DEBUFF"},
 			-- A Murder of Crows
@@ -1327,10 +1330,14 @@ C["filger_spells"] = {
 			{spellID = 105809, unitID = "player", caster = "player", filter = "BUFF"},
 			-- Avenging Wrath
 			{spellID = 31884, unitID = "player", caster = "player", filter = "BUFF"},
+			-- Sentinel
+			{spellID = 389539, unitID = "player", caster = "player", filter = "BUFF"},
 			-- Ardent Defender
 			{spellID = 31850, unitID = "player", caster = "player", filter = "BUFF"},
 			-- Divine Protection
 			{spellID = 498, unitID = "player", caster = "player", filter = "BUFF"},
+			-- Sacred Weapon
+			{spellID = 432502, unitID = "player", caster = "player", filter = "BUFF"},
 			-- Rule of Law
 			{spellID = 214202, unitID = "player", caster = "player", filter = "BUFF"},
 			-- Shield of the Righteous
@@ -2231,7 +2238,7 @@ C["filger_spells"] = {
 			-- Enraged Regeneration
 			{spellID = 184364, unitID = "player", caster = "player", filter = "BUFF"},
 			-- Shield Block
-			{spellID = 2565, unitID = "player", caster = "player", filter = "BUFF"},
+			{spellID = 132404, unitID = "player", caster = "player", filter = "BUFF"},
 			-- Spell Reflection
 			{spellID = 23920, unitID = "player", caster = "player", filter = "BUFF"},
 			-- Die by the Sword
@@ -2266,6 +2273,8 @@ C["filger_spells"] = {
 			{spellID = 85739, unitID = "player", caster = "player", filter = "BUFF"},
 			-- Enrage
 			{spellID = 184362, unitID = "player", caster = "player", filter = "BUFF"},
+			-- Revenge!
+			{spellID = 5302, unitID = "player", caster = "player", filter = "BUFF"},
 		},
 		{
 			Name = "T_DEBUFF_ICON",
@@ -2279,7 +2288,7 @@ C["filger_spells"] = {
 			-- Siegebreaker
 			{spellID = 280773, unitID = "target", caster = "player", filter = "DEBUFF"},
 			-- Rend
-			{spellID = 772, unitID = "target", caster = "player", filter = "DEBUFF"},
+			{spellID = 388539, unitID = "target", caster = "player", filter = "DEBUFF"},
 			-- Colossus Smash
 			{spellID = 167105, unitID = "target", caster = "player", filter = "DEBUFF"},
 			-- Hamstring
@@ -2472,6 +2481,8 @@ C["filger_spells"] = {
 			{spellID = 77764, unitID = "player", caster = "all", filter = "BUFF"},
 			-- Blessing of Freedom
 			{spellID = 1044, unitID = "player", caster = "all", filter = "BUFF"},
+			-- Divine Steed
+			{spellID = 254471, unitID = "player", caster = "all", filter = "BUFF"},
 			-- Time Spiral
 			{spellID = 375226, unitID = "player", caster = "all", filter = "BUFF"},
 			-- Tricks of the Trade

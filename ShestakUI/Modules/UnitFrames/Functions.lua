@@ -1166,7 +1166,7 @@ T.PostCreateFilgerIcon = function(element, button, options)
 
 	if options.isBar then
 		local statusBar = CreateFrame("StatusBar", "nil", button)
-		statusBar:SetWidth(186)
+		statusBar:SetWidth(options.isFocus and 189 or 186)
 		statusBar:SetHeight(button:GetHeight() - 10)
 		statusBar:SetStatusBarTexture(C.media.texture)
 		statusBar:SetStatusBarColor(T.color.r, T.color.g, T.color.b, 1)
@@ -1258,7 +1258,7 @@ T.CreateFilgerAuras = function(self, unit)
 			self.SBuffs:AddGroup("HELPFUL|BIG_DEFENSIVE|!EXTERNAL_DEFENSIVE", {
 				maxFrameCount = 2,
 			})
-			self.SBuffs:AddGroup("HELPFUL|EXTERNAL_DEFENSIVE|!BIG_DEFENSIVE", {
+			self.SBuffs:AddGroup("HELPFUL|EXTERNAL_DEFENSIVE", {
 				maxFrameCount = 1,
 			})
 		end
@@ -1345,7 +1345,7 @@ T.CreateFilgerAuras = function(self, unit)
 			self.TBuffs:AddGroup("HELPFUL|BIG_DEFENSIVE|!EXTERNAL_DEFENSIVE", {
 				maxFrameCount = 1,
 			})
-			self.TBuffs:AddGroup("HELPFUL|EXTERNAL_DEFENSIVE|!BIG_DEFENSIVE", {
+			self.TBuffs:AddGroup("HELPFUL|EXTERNAL_DEFENSIVE", {
 				maxFrameCount = 1,
 			})
 		end
@@ -1398,6 +1398,31 @@ T.CreateFilgerAuras = function(self, unit)
 				isBar = true,
 				maxFrameCount = 6,
 				candidateFilters = {includeSpellIDs = T.Filger_T_BAR},
+			})
+		end
+	elseif unit == "focus" then
+		if C.filger.show_aura_bar then
+			-- CC Debuffs bar on focus
+			self.CCBarDebuffs = self:CreateAuras({
+				growthX = "RIGHT",
+				growthY = "UP",
+				layoutLimit = 28,
+				initialAnchor = "BOTTOMLEFT"
+			})
+			self.CCBarDebuffs.size = 25
+			self.CCBarDebuffs.showCount = true
+			self.CCBarDebuffs.lineSpacing = C.filger.buffs_space
+			self.CCBarDebuffs.sortDirection = AuraContainerSortDirection.Reverse
+			self.CCBarDebuffs.PostCreateButton = T.PostCreateFilgerIcon
+			self.CCBarDebuffs:SetPoint("BOTTOMLEFT", FOCUS_CC_Anchor)
+			self.CCBarDebuffs.tooltipAnchor = "ANCHOR_TOPLEFT"
+			self.CCBarDebuffs.tooltipOffsetY = 3
+			self.CCBarDebuffs.disableMouse = not C.filger.show_tooltip
+
+			self.CCBarDebuffs:AddGroup("HARMFUL|CROWD_CONTROL", {
+				isBar = true,
+				isFocus = true,
+				maxFrameCount = 1,
 			})
 		end
 	end

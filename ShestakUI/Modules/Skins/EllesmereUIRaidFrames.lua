@@ -2,7 +2,7 @@ local T, C, L = unpack(ShestakUI)
 if C.skins.ellesmere_raidframes ~= true then return end
 
 ----------------------------------------------------------------------------------------
---	EllesmereUIRaidFrames 皮肤模块（实现 ShestakUI 1px 像素边框、暗色背景与材质统一）
+--	EllesmereUIRaidFrames 皮肤模块（纯事件驱动与 1px 像素边框美化，0 运行时 CPU 持续开销）
 ----------------------------------------------------------------------------------------
 
 -- 统一为框架创建置顶的 1px 像素边框
@@ -17,21 +17,10 @@ local function CreateUnitBorder(frame)
 	frame.shestakBorder = border
 end
 
--- 美化单颗 Aura / Debuff 图标
-local function SkinAuraIcon(iconFrame)
-	if not iconFrame or iconFrame.shestakStyled then return end
-	iconFrame.shestakStyled = true
-
-	local icon = iconFrame.icon or iconFrame.Icon or iconFrame.texture
-	if icon and icon.SetTexCoord then
-		icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-	end
-	CreateUnitBorder(iconFrame)
-end
-
--- 对单个 Ellesmere 团队/小队单元框体应用美化
+-- 对单个 Ellesmere 团队/小队单元框体应用美化（一次性执行）
 local function SkinRaidButton(button)
-	if not button then return end
+	if not button or button.shestakStyled then return end
+	button.shestakStyled = true
 
 	-- 1. 创建置顶 1px 像素边框
 	CreateUnitBorder(button)
@@ -53,7 +42,7 @@ local function SkinRaidButton(button)
 		end
 	end
 
-	-- 3. 子 StatusBar 材质全量替换
+	-- 3. 遍历子 StatusBar 替换材质
 	local children = { button:GetChildren() }
 	for _, child in ipairs(children) do
 		if child:IsObjectType("StatusBar") then
@@ -62,12 +51,13 @@ local function SkinRaidButton(button)
 	end
 end
 
--- 全局注入与扫描
-local function SkinEllesmereRaidFrames()
+-- 全局注入与 Hook 绑定（纯事件触发，无任何 OnUpdate 轮询开销）
+local function InitEllesmereRaidSkin()
 	local ns = (EllesmereUI and EllesmereUI._ModuleNS and EllesmereUI._ModuleNS["EllesmereUIRaidFrames"]) or _G.EllesmereUIRaidFrames_NS
-	if not ns then return end
+	if not ns or ns._shestakSkinHooked then return end
+	ns._shestakSkinHooked = true
 
-	-- 1. 材质字典全量重写：使 Ellesmere 内部每次 UpdateButton / ResolveHealthTexture 均返回 ShestakUI 材质
+	-- 1. 材质字典全局覆盖：确保原生每一次 ResolveHealthTexture 均返回 ShestakUI 材质
 	if ns.healthBarTextures then
 		for k in pairs(ns.healthBarTextures) do
 			ns.healthBarTextures[k] = C.media.texture
@@ -76,7 +66,14 @@ local function SkinEllesmereRaidFrames()
 		ns.healthBarTextures["shestak"] = C.media.texture
 	end
 
-	-- 2. 遍历美化所有已注册的单元按钮
+	-- 2. 拦截并 Hook 按钮样式化入口：在创建/重用框体的一瞬间自动美化，无需轮询
+	if ns._StyleButtonSecure then
+		hooksecurefunc(ns, "_StyleButtonSecure", function(button)
+			SkinRaidButton(button)
+		end)
+	end
+
+	-- 3. 对当前已存在的全部按钮立即执行一次初始化美化
 	if ns._euiUnitButtons then
 		for button in pairs(ns._euiUnitButtons) do
 			SkinRaidButton(button)
@@ -84,15 +81,7 @@ local function SkinEllesmereRaidFrames()
 	end
 end
 
--- 周期轮询检查当前活动的团队框体实例（覆盖战斗外动态生成的框体）
-local function onUpdate(self, elapsed)
-	self.elapsed = (self.elapsed or 0) + elapsed
-	if self.elapsed < 0.2 then return end
-	self.elapsed = 0
-
-	SkinEllesmereRaidFrames()
-end
-
+-- 登录与模块加载事件监听
 local f = CreateFrame("Frame")
 f:RegisterEvent("PLAYER_LOGIN")
 f:RegisterEvent("PLAYER_ENTERING_WORLD")
@@ -100,11 +89,11 @@ f:RegisterEvent("ADDON_LOADED")
 f:SetScript("OnEvent", function(self, event, addon)
 	if event == "ADDON_LOADED" then
 		if addon == "EllesmereUIRaidFrames" or addon == "EllesmereUI" then
-			SkinEllesmereRaidFrames()
+			InitEllesmereRaidSkin()
 		end
 	else
-		SkinEllesmereRaidFrames()
-		self:SetScript("OnUpdate", onUpdate)
+		InitEllesmereRaidSkin()
 	end
 end)
+
 

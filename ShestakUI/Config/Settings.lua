@@ -72,6 +72,7 @@ C["skins"] = {
 	["opie"] = false,							-- OPie skin
 	["plater"] = false,							-- Plater skin
 	["ellesmere_nameplates"] = false,			-- EllesmereUINameplates skin
+	["ellesmere_raidframes"] = false,			-- EllesmereUIRaidFrames skin
 	["postal"] = false,							-- Postal skin
 	["rarescanner"] = false,					-- RareScanner skin
 	["rematch"] = false,						-- Rematch skin

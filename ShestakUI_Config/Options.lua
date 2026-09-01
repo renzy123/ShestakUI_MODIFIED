@@ -1477,6 +1477,7 @@ do
 		{"opie"},
 		{"plater"},
 		{"ellesmere_nameplates"},
+		{"ellesmere_raidframes"},
 		{"postal"},
 		{"rarescanner"},
 		{"rematch"},

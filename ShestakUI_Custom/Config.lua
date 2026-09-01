@@ -29,3 +29,10 @@ end
 C.quest = C.quest or {}
 C.quest.objective_tracker = false
 
+-- 第三方插件皮肤配置：启用 Ellesmere 姓名板与团队框体 Reskin 皮肤
+if C.skins then
+	C.skins.ellesmere_nameplates = true
+	C.skins.ellesmere_raidframes = true
+end
+
+

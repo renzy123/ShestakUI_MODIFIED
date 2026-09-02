@@ -3,7 +3,7 @@ if C.skins.ellesmere_raidframes ~= true then return end
 
 ----------------------------------------------------------------------------------------
 --	EllesmereUIRaidFrames 皮肤模块
---	实现 ShestakUI 标志性 1px 黑色像素边框、暗色背景与材质全局统一
+--	全面适配 EllesmereUI 模组模式（作为主插件子模组运行），实现 1px 像素边框与材质统一
 ----------------------------------------------------------------------------------------
 
 -- 统一为框架创建置顶的 1px 像素边框（透明背景，仅保留黑色 1px 边框）
@@ -64,7 +64,7 @@ local function ScanHeaderButtons(header)
 		end
 	end
 
-	-- 遍历直接子子节点按钮
+	-- 遍历直接子节点按钮
 	local children = { header:GetChildren() }
 	for _, child in ipairs(children) do
 		if child:IsObjectType("Button") then
@@ -78,23 +78,23 @@ end
 
 -- 全局扫描与材质拦截总入口
 local function ApplyEllesmereSkin()
-	-- 1. 全局材质解析函数拦截：强制使 Ellesmere 所有模块返回 ShestakUI 材质
+	-- 1. 全局材质解析函数拦截：强制使 Ellesmere 所有模块（包括主插件与子模组）返回 ShestakUI 材质
 	if _G.EllesmereUI and _G.EllesmereUI.ResolveTexturePath then
 		if not _G.EllesmereUI._shestakPatched then
 			_G.EllesmereUI._shestakPatched = true
-			local origResolve = _G.EllesmereUI.ResolveTexturePath
 			_G.EllesmereUI.ResolveTexturePath = function(tbl, key, fallback)
 				return C.media.texture
 			end
 		end
 	end
 
-	-- 2. 遍历所有已知 Ellesmere Raid Headers
+	-- 2. 遍历所有已知 Ellesmere Raid Headers 与容器
 	local totalStyled = 0
 	local headers = {
 		_G["ERFPartyHeader"],
 		_G["ERFFlatHeader"],
 		_G["ERFPreviewFrame"],
+		_G["EllesmereUIRaidFrameContainer"],
 	}
 	for g = 1, 8 do
 		table.insert(headers, _G["ERFGroupHeader" .. g])
@@ -113,7 +113,7 @@ local function ApplyEllesmereSkin()
 		end
 	end
 
-	-- 3. 额外遍历友方 Boss 框体
+	-- 3. 遍历友方 Boss 框体
 	for i = 1, 5 do
 		local bossBtn = _G["ERFFriendlyBoss" .. i]
 		if bossBtn then
@@ -125,7 +125,7 @@ local function ApplyEllesmereSkin()
 	return totalStyled
 end
 
--- 事件监听与生命周期初始化
+-- 事件监听与多阶段生命周期初始化
 local f = CreateFrame("Frame")
 f:RegisterEvent("PLAYER_LOGIN")
 f:RegisterEvent("PLAYER_ENTERING_WORLD")
@@ -137,16 +137,26 @@ f:SetScript("OnEvent", function(self, event, addon)
 		return
 	end
 
-	-- 延迟执行一次全量扫描，兼容 Ellesmere 的异步队列加载
-	C_Timer.After(0.2, function()
+	-- 延迟执行全量扫描，兼容 Ellesmere 异步分帧队列（Time-slicing drain）加载
+	C_Timer.After(0.3, function()
 		local count = ApplyEllesmereSkin()
-		-- 关键位置 DEBUG 日志，方便用户在聊天框验证是否触发
 		if count > 0 and not f.logged then
 			f.logged = true
-			print("|cff00ff00ShestakUI:|r EllesmereUIRaidFrames 美化模块已生效，已美化 " .. count .. " 个单元框体。")
+			print("|cff00ff00ShestakUI:|r EllesmereUI 团队框体模组已检测并美化，已适配 " .. count .. " 个单元框体。")
 		end
 	end)
 end)
 
-
-
+-- 登录后轻量轮询检测（仅持续 10 秒，每秒检测 1 次，兼容延迟启用的模组）
+local tickerCount = 0
+C_Timer.NewTicker(1.0, function(self)
+	tickerCount = tickerCount + 1
+	local count = ApplyEllesmereSkin()
+	if count > 0 and not f.logged then
+		f.logged = true
+		print("|cff00ff00ShestakUI:|r EllesmereUI 团队框体模组已检测并美化，已适配 " .. count .. " 个单元框体。")
+	end
+	if tickerCount >= 10 then
+		self:Cancel()
+	end
+end)

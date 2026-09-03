@@ -1,5 +1,4 @@
 local T, C, L = unpack(ShestakUI)
-if C.skins.ellesmere_raidframes ~= true then return end
 
 ----------------------------------------------------------------------------------------
 --	EllesmereUIRaidFrames 皮肤模块
@@ -79,6 +78,8 @@ end
 
 -- 主执行逻辑：全局材质拦截与全量容器扫描
 local function ApplyEllesmereSkin()
+	if C.skins.ellesmere_raidframes ~= true then return 0 end
+
 	-- 1. 全局材质源头拦截：使 EllesmereUI 所有模块在解析材质时均返回 ShestakUI 纹理
 	if _G.EllesmereUI and _G.EllesmereUI.ResolveTexturePath then
 		if not _G.EllesmereUI._shestakPatched then
@@ -142,7 +143,7 @@ f:SetScript("OnEvent", function(self, event, addon)
 		local count = ApplyEllesmereSkin()
 		if count > 0 and not f.logged then
 			f.logged = true
-			print("|cff00ff00ShestakUI:|r EllesmereUI 团队框体模组已检测并美化，已适配 " .. count .. " 个单元框体。")
+			print("|cff00ff00ShestakUI:|r EllesmereUI 团队框体美化模块已激活，已适配 " .. count .. " 个单元框体。")
 		end
 	end)
 end)
@@ -154,10 +155,11 @@ C_Timer.NewTicker(1.0, function(self)
 	local count = ApplyEllesmereSkin()
 	if count > 0 and not f.logged then
 		f.logged = true
-		print("|cff00ff00ShestakUI:|r EllesmereUI 团队框体模组已检测并美化，已适配 " .. count .. " 个单元框体。")
+		print("|cff00ff00ShestakUI:|r EllesmereUI 团队框体美化模块已激活，已适配 " .. count .. " 个单元框体。")
 	end
 	if tickerCount >= 10 then
 		self:Cancel()
 	end
 end)
+
 

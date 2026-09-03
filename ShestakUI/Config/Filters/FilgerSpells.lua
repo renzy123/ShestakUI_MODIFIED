@@ -1593,10 +1593,6 @@ C["filger_spells"] = {
 			{spellID = 139, unitID = "target", caster = "player", filter = "BUFF"},
 			-- Prayer of Mending
 			{spellID = 41635, unitID = "target", caster = "player", filter = "BUFF"},
-			-- Guardian Spirit
-			{spellID = 47788, unitID = "target", caster = "player", filter = "BUFF"},
-			-- Pain Suppression
-			{spellID = 33206, unitID = "target", caster = "player", filter = "BUFF"},
 			-- Vampiric Touch
 			{spellID = 34914, unitID = "target", caster = "player", filter = "DEBUFF"},
 			-- Shadow Word: Pain
@@ -1905,7 +1901,9 @@ C["filger_spells"] = {
 			-- Elemental Mastery
 			{spellID = 16166, unitID = "player", caster = "player", filter = "BUFF"},
 			-- Ascendance
-			{spellID = 114049, unitID = "player", caster = "player", filter = "BUFF"},
+			{spellID = 114050, unitID = "player", caster = "player", filter = "BUFF", absID = true},
+			{spellID = 114051, unitID = "player", caster = "player", filter = "BUFF", absID = true},
+			{spellID = 114052, unitID = "player", caster = "player", filter = "BUFF", absID = true},
 			-- Spiritwalker's Grace
 			{spellID = 79206, unitID = "player", caster = "player", filter = "BUFF"},
 			-- Unleash Life
@@ -1922,6 +1920,8 @@ C["filger_spells"] = {
 			{spellID = 108271, unitID = "player", caster = "player", filter = "BUFF"},
 			-- Fury of Air
 			{spellID = 197211, unitID = "player", caster = "player", filter = "BUFF"},
+			-- Nature's Swiftness
+			{spellID = 378081, unitID = "player", caster = "player", filter = "BUFF"},
 		},
 		{
 			Name = "P_PROC_ICON",
@@ -1978,7 +1978,7 @@ C["filger_spells"] = {
 			Position = {"LEFT", T_DE_BUFF_BAR_Anchor},
 
 			-- Earth Shield
-			{spellID = 204288, unitID = "target", caster = "player", filter = "BUFF"},
+			{spellID = 383648, unitID = "target", caster = "player", filter = "BUFF"},
 			-- Riptide
 			{spellID = 61295, unitID = "target", caster = "player", filter = "BUFF"},
 		},
@@ -2479,6 +2479,8 @@ C["filger_spells"] = {
 			{spellID = 121557, unitID = "player", caster = "all", filter = "BUFF"},
 			-- Stampeding Roar
 			{spellID = 77764, unitID = "player", caster = "all", filter = "BUFF"},
+			-- Wind Rush
+			{spellID = 192082, unitID = "player", caster = "all", filter = "BUFF"},
 			-- Blessing of Freedom
 			{spellID = 1044, unitID = "player", caster = "all", filter = "BUFF"},
 			-- Divine Steed

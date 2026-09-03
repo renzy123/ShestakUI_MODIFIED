@@ -12,6 +12,7 @@ T.UpdateAllElements = function(frame)
 	--BETA for _, v in ipairs(frame.__elements) do
 		-- v(frame, "UpdateElement", frame.unit)
 	-- end
+	frame:UpdateAllElements("UpdateElement")
 end
 
 T.SetFontString = function(parent, fontName, fontHeight, fontStyle)
@@ -777,17 +778,10 @@ T.PostCreateIcon = function(element, button, options)
 		end
 	end
 
-	-- TODO: add custom stealable border
-
 	if C.aura.show_spiral then
 		button.Cooldown:SetReverse(true)
 		button.Cooldown:SetPoint("TOPLEFT", button, "TOPLEFT", 2, -2)
 		button.Cooldown:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", -2, 2)
-		-- button.parent = CreateFrame("Frame", nil, button)
-		-- button.parent:SetFrameLevel(button.Cooldown:GetFrameLevel() + 1)
-		-- button.Count:SetParent(button.parent)
-	else
-		-- button.Cooldown:SetAlpha(0)
 	end
 
 	if element.isRaidDebuff then
@@ -860,11 +854,6 @@ T.CreateRaidBuffIcon = function(element, button)
 
 	if C.aura.show_spiral then
 		button.Cooldown:SetReverse(true)
-		-- button.parent = CreateFrame("Frame", nil, button)
-		-- button.parent:SetFrameLevel(button.Cooldown:GetFrameLevel() + 1)
-		-- button.Count:SetParent(button.parent)
-	else
-		-- button.Cooldown:SetAlpha(0)
 	end
 end
 
@@ -906,18 +895,6 @@ T.CreateAuraWatch = function(self)
 				maxFrameCount = 1,
 			})
 		end
-	end
-end
-
-T.PrivateAurasSetPosition = function(element, aura)
-	aura:ClearAllPoints()
-	aura:SetPoint("CENTER", element, "CENTER", 0, 0)
-end
-
-T.PrivateAurasPostUpdate = function(self)
-	for i = 1, #self do
-		local aura = self[i]
-		aura:SetSize(0.0001, 0.0001)
 	end
 end
 
@@ -1171,6 +1148,7 @@ T.PostCreateFilgerIcon = function(element, button, options)
 		statusBar:SetStatusBarTexture(C.media.texture)
 		statusBar:SetStatusBarColor(T.color.r, T.color.g, T.color.b, 1)
 		statusBar:SetPoint("BOTTOMLEFT", button, "BOTTOMRIGHT", 5, 2)
+		statusBar:SetFillStyle(Enum.StatusBarFillStyle.StandardNoRangeFill)
 
 		statusBar.bg = CreateFrame("Frame", "$parentBG", statusBar)
 		statusBar.bg:SetAllPoints()

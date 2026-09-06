@@ -747,7 +747,7 @@ local function Shared(self, unit)
 	or unit == "focustarget" and C.aura.fot_debuffs or unit == "targettarget" and C.aura.tot_debuffs then
 		self.Debuffs = self:CreateAuras({
 			growthY = "DOWN",
-			layoutLimit = pet_width + 5,
+			layoutLimit = pet_width + 5
 		})
 		self.Debuffs.size = T.Scale(C.aura.debuff_size)
 		self.Debuffs.showCount = true
@@ -766,7 +766,7 @@ local function Shared(self, unit)
 		end
 
 		self.Debuffs:AddGroup("HARMFUL", {
-			maxFrameCount = 4,
+			maxFrameCount = 4
 		})
 
 		-- if unit == "pet" then
@@ -1193,7 +1193,7 @@ local function Shared(self, unit)
 		end
 
 		self.Debuffs:AddGroup("HARMFUL|CROWD_CONTROL", {
-			maxFrameCount = 1,
+			maxFrameCount = 1
 		})
 
 		-- self.Debuffs:AddGroup("HELPFUL|EXTERNAL_DEFENSIVE", {

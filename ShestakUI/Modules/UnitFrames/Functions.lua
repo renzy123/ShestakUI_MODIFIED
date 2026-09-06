@@ -1069,7 +1069,7 @@ T.DispelColor = function(self)
 		button:AddDispelTypeTexture(texture, {
 			style = Enum.CustomAuraButtonDispelTypeTextureStyle.PreserveAsset,
 			showWhenHarmful = true,
-			customDispelColorMap = dispelColor,
+			customDispelColorMap = dispelColor
 		})
 	end
 

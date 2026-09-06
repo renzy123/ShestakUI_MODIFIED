@@ -262,7 +262,7 @@ local function Shared(self, unit)
 		-- Defensive buffs
 		self.Auras = self:CreateAuras({
 			initialAnchor = "TOPRIGHT",
-			growthX = "LEFT",
+			growthX = "LEFT"
 		})
 		self.Auras:SetPoint("LEFT", self, 0, 2)
 		self.Auras.showCount = true
@@ -273,7 +273,7 @@ local function Shared(self, unit)
 		self.Auras.PostCreateButton = T.CreateRaidBuffIcon
 
 		self.Auras:AddGroup("HELPFUL|EXTERNAL_DEFENSIVE", {
-			maxFrameCount = 1,
+			maxFrameCount = 1
 		})
 	end
 

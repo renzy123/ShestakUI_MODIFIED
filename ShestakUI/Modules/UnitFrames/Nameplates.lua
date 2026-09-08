@@ -111,10 +111,13 @@ if C.nameplate.healer_icon then
 			wipe(healList)
 			local playerFaction = numFactions[UnitFactionGroup("player")]
 			for i = 1, GetNumBattlefieldScores() do
-				local name, _, _, _, _, faction, _, _, _, _, _, _, _, _, _, talentSpec = GetBattlefieldScore(i)
-				if T.NotSecretValue(name) and name and healerSpecs[talentSpec] and faction == playerFaction then
-					name = name:match("(.+)%-.+") or name
-					healList[name] = talentSpec
+				local data = C_PvP.GetScoreInfo(i)
+				if data then
+					local name, faction, talentSpec = data.name, data.faction, data.talentSpec
+					if T.NotSecretValue(name) and name and healerSpecs[talentSpec] and faction == playerFaction then
+						name = name:match("(.+)%-.+") or name
+						healList[name] = talentSpec
+					end
 				end
 			end
 		end
@@ -902,21 +905,22 @@ local function style(self, unit)
 			initialAnchor = "BOTTOMRIGHT",
 			growthX = "LEFT",
 			growthY = "UP",
-			layoutLimit = 20 + C.nameplate.width,
+			layoutLimit = C.nameplate.width + 20
 		})
 
 		self.Auras:SetPoint("BOTTOMRIGHT", self.Health, "TOPRIGHT", 0, C.font.nameplates_font_size + 8)
 		self.Auras.elementSpacing = 5
+		self.Auras.lineSpacing = 5
+		self.Auras.groupLineSpacing = 5
 		self.Auras.size = C.nameplate.auras_size - 3
 		self.Auras.disableMouse = true
 		self.Auras.showCount = true
-
 		self.Auras.PostCreateButton = AurasPostCreateIcon
 
 		if C.nameplate.track_buffs then
 			self.Auras:AddGroup("HELPFUL|RAID_PLAYER_DISPELLABLE", {
 				maxFrameCount = 2,
-				showStealable = true,
+				showStealable = true
 			})
 		end
 
@@ -924,7 +928,7 @@ local function style(self, unit)
 			self.Auras:AddGroup("HARMFUL|PLAYER", {
 				candidateFilters = {includeSpellIDs = T.DebuffWhiteList, excludeSpellIDs = T.DebuffBlackList},
 				maxFrameCount = 6,
-				isDebuff = true,
+				isDebuff = true
 			})
 		end
 	end

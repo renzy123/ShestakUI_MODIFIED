@@ -1478,6 +1478,7 @@ do
 		{"plater"},
 		{"ellesmere_nameplates"},
 		{"ellesmere_raidframes"},
+		{"ellesmere_damagemeters"},
 		{"postal"},
 		{"rarescanner"},
 		{"rematch"},

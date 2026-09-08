@@ -1,0 +1,19 @@
+## Interface: 120000, 120001, 120005, 120007, 120100
+## Title: |cff00ffffEllesmereUI|r ShestakSkin
+## Notes: ShestakUI 极简像素风独立美化层 (1px 黑色像素边框、纯平 Flat 材质与紧凑排版)
+## Author: Shestak / Antigravity
+## Version: 1.0.1
+## RequiredDeps: EllesmereUI
+## OptionalDeps: EllesmereUIActionBars, EllesmereUINameplates, EllesmereUIUnitFrames, EllesmereUIMinimap, EllesmereUIChat, EllesmereUIBlizzardSkin, EllesmereUIRaidFrames, LibSharedMedia-3.0
+
+# 核心初始化与像素引擎
+Core/Init.lua
+Core/PixelEngine.lua
+
+# 各功能模块专属美化
+Modules/ActionBars.lua
+Modules/Nameplates.lua
+Modules/UnitFrames.lua
+Modules/Minimap.lua
+Modules/Chat.lua
+Modules/BlizzardSkin.lua

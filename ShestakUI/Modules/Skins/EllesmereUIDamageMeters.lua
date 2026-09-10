@@ -172,15 +172,49 @@ local function SkinWindow(W)
 		end
 	end
 
-	-- 3. 标题栏文本与战斗计时
-	if W.titleText then
-		W.titleText:SetFont(C.media.normal_font, 12, "OUTLINE")
-		W.titleText:SetShadowOffset(1, -1)
+	-- 3. 标题栏文本（10px）与图标大小（12px）调整，其他不做额外改变
+	local function ApplyHeaderStyling()
+		if W.titleText and W.titleText.GetFont then
+			local font, _, flags = W.titleText:GetFont()
+			if font then
+				W.titleText:SetFont(font, 10, flags)
+			end
+		end
+		if W.timerText and W.timerText.GetFont then
+			local font, _, flags = W.timerText:GetFont()
+			if font then
+				W.timerText:SetFont(font, 10, flags)
+			end
+		end
+
+		local iconSz = 12
+		local btnPad = 2
+		if W.hdrBtns then
+			local bi = 0
+			for _, btn in ipairs(W.hdrBtns) do
+				if btn:IsShown() then
+					bi = bi + 1
+					btn:SetSize(iconSz, iconSz)
+					btn:ClearAllPoints()
+					btn:SetPoint("RIGHT", W.header, "RIGHT", -(iconSz * (bi - 1) + btnPad * bi + 2), 0)
+				end
+			end
+		end
+		if W.hdrIcons then
+			for _, icon in ipairs(W.hdrIcons) do
+				icon:SetSize(iconSz, iconSz)
+			end
+		end
+		if W._closeIconTex then
+			W._closeIconTex:SetSize(iconSz, iconSz)
+		end
+		if W.FitTitle then
+			W.FitTitle()
+		end
 	end
-	if W.timerText then
-		W.timerText:SetFont(C.media.normal_font, 11, "OUTLINE")
-		W.timerText:SetShadowOffset(1, -1)
-	end
+
+	ApplyHeaderStyling()
+	W.ApplyHeaderStyling = ApplyHeaderStyling
 
 	-- 4. 批量美化已有行池（主窗口 rowPool 和 技能池 spellPool）
 	if W.rowPool then
@@ -200,6 +234,7 @@ local function SkinWindow(W)
 	-- 5. 挂钩窗口刷新，确保数据更新、增量渲染时美化实时维持
 	if W.Refresh then
 		hooksecurefunc(W, "Refresh", function()
+			ApplyHeaderStyling()
 			if W.rowPool then
 				for _, bar in ipairs(W.rowPool) do
 					if bar.row and bar.row:IsShown() then

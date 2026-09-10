@@ -23,22 +23,23 @@ local function SkinBar(bar)
 	if bar._bg then bar._bg:SetAlpha(0) end
 
 	-- 挂钩原生边框刷新函数，防止原生逻辑在刷新时重新显示旧边框
+	-- 注意：原生以 bar.ApplyBorder() 形式调用，不携带 self 参数，此处必须直接使用闭包捕获的 bar 实例
 	if not bar._shestakHooked then
 		bar._shestakHooked = true
 		if bar.ApplyBorder then
-			hooksecurefunc(bar, "ApplyBorder", function(self)
-				if self._borderFrame then self._borderFrame:Hide() end
-				if self._fillBorder then self._fillBorder:Hide() end
+			hooksecurefunc(bar, "ApplyBorder", function()
+				if bar._borderFrame then bar._borderFrame:Hide() end
+				if bar._fillBorder then bar._fillBorder:Hide() end
 			end)
 		end
 		if bar.ApplyIconBorder then
-			hooksecurefunc(bar, "ApplyIconBorder", function(self)
-				if self._iconBorderFrame then self._iconBorderFrame:Hide() end
+			hooksecurefunc(bar, "ApplyIconBorder", function()
+				if bar._iconBorderFrame then bar._iconBorderFrame:Hide() end
 			end)
 		end
 		if bar.ApplyBg then
-			hooksecurefunc(bar, "ApplyBg", function(self)
-				if self._bg then self._bg:SetAlpha(0) end
+			hooksecurefunc(bar, "ApplyBg", function()
+				if bar._bg then bar._bg:SetAlpha(0) end
 			end)
 		end
 	end

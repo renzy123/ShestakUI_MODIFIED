@@ -74,44 +74,51 @@ local function SkinBar(bar)
 		bar.shestakBackdrop:SetPoint("BOTTOMRIGHT", bar.fill, 2, -2)
 	end
 
-	-- 5. 字体排版与 1px 间距锚定（要求：条文本字号 8px，文本与条及边框保持 1px 间距）
-	local font = (T.client == "zhCN" or T.client == "zhTW") and C.media.normal_font or C.media.pixel_font
-	local fontSize = 8
-	local fontStyle = (font == C.media.pixel_font) and "MONOCHROMEOUTLINE" or "OUTLINE"
+	-- 5. 字体排版与 2px 内间距锚定（需求：左右增加 2px 内间距，字体使用原设置 C.media.normal_font / 11px）
+	local font = C.media.normal_font
+	local fontSize = 11
+	local fontStyle = "OUTLINE"
 
-	local function ApplyShestakTextStyle()
+	if bar.pos then
+		bar.pos:SetFont(font, fontSize, fontStyle)
+		bar.pos:SetShadowOffset(1, -1)
+	end
+	if bar.label then
+		bar.label:SetFont(font, fontSize, fontStyle)
+		bar.label:SetShadowOffset(1, -1)
+	end
+	if bar.amount then
+		bar.amount:SetFont(font, fontSize, fontStyle)
+		bar.amount:SetShadowOffset(1, -1)
+	end
+
+	local function ApplyShestakTextOffsets()
 		if bar.pos then
-			bar.pos:SetFont(font, fontSize, fontStyle)
-			bar.pos:SetShadowOffset(0, 0)
 			bar.pos:ClearAllPoints()
-			bar.pos:SetPoint("LEFT", bar.fill, "LEFT", 1, 0)
+			bar.pos:SetPoint("LEFT", bar.fill, "LEFT", 2, 0)
 		end
 		if bar.amount then
-			bar.amount:SetFont(font, fontSize, fontStyle)
-			bar.amount:SetShadowOffset(0, 0)
 			bar.amount:ClearAllPoints()
-			bar.amount:SetPoint("RIGHT", bar.fill, "RIGHT", -1, 0)
+			bar.amount:SetPoint("RIGHT", bar.fill, "RIGHT", -2, 0)
 		end
 		if bar.label then
-			bar.label:SetFont(font, fontSize, fontStyle)
-			bar.label:SetShadowOffset(0, 0)
 			bar.label:ClearAllPoints()
 			if bar.pos and bar.pos:GetText() and bar.pos:GetText() ~= "" then
-				bar.label:SetPoint("LEFT", bar.pos, "RIGHT", 1, 0)
+				bar.label:SetPoint("LEFT", bar.pos, "RIGHT", 2, 0)
 			else
-				bar.label:SetPoint("LEFT", bar.fill, "LEFT", 1, 0)
+				bar.label:SetPoint("LEFT", bar.fill, "LEFT", 2, 0)
 			end
 			if bar.amount then
-				bar.label:SetPoint("RIGHT", bar.amount, "LEFT", -1, 0)
+				bar.label:SetPoint("RIGHT", bar.amount, "LEFT", -2, 0)
 			else
-				bar.label:SetPoint("RIGHT", bar.fill, "RIGHT", -1, 0)
+				bar.label:SetPoint("RIGHT", bar.fill, "RIGHT", -2, 0)
 			end
 		end
 	end
 
-	-- 覆盖原生的文本偏移逻辑，确保原生代码在调用 ApplyTextOffsets 时维持 1px 间距
-	bar.ApplyTextOffsets = ApplyShestakTextStyle
-	ApplyShestakTextStyle()
+	-- 覆盖原生的文本偏移逻辑，确保原生代码在调用 ApplyTextOffsets 时维持左右各 2px 的内间距
+	bar.ApplyTextOffsets = ApplyShestakTextOffsets
+	ApplyShestakTextOffsets()
 end
 
 -- 美化单个伤害统计窗口（支持最多 5 个多实例窗口）

@@ -141,17 +141,35 @@ local function SkinWindow(W)
 		W.windowBorderTarget:Hide()
 	end
 
-	-- 2. 标题栏顶板美化（Overlay 风格）
-	if header and not header.shestakHeader then
-		local hBg = CreateFrame("Frame", nil, header)
-		hBg:SetTemplate("Overlay")
-		hBg:SetAllPoints(header)
-		hBg:SetFrameLevel(header:GetFrameLevel() - 1)
-		header.shestakHeader = hBg
+	-- 2. 标题栏顶板美化（Overlay 风格）与底部边框美化
+	if header then
+		if not header.shestakHeader then
+			local hBg = CreateFrame("Frame", nil, header)
+			hBg:SetTemplate("Overlay")
+			hBg:SetAllPoints(header)
+			hBg:SetFrameLevel(header:GetFrameLevel() - 1)
+			header.shestakHeader = hBg
 
-		-- 隐藏原生纯色背景与底部边线
-		if header._hdrBg then header._hdrBg:SetAlpha(0) end
-		if header._bottomBorder then header._bottomBorder:Hide() end
+			-- 隐藏原生纯色背景
+			if header._hdrBg then header._hdrBg:SetAlpha(0) end
+		end
+
+		-- 标题栏底部边框美化：创建 ShestakUI 标准 1px 黑色像素分界线，完美对接主窗口外边框
+		if not header.shestakBottomBorder then
+			local bBorder = header:CreateTexture(nil, "OVERLAY", nil, 7)
+			bBorder:SetTexture(C.media.blank)
+			bBorder:SetVertexColor(unpack(C.media.border_color))
+			bBorder:SetPoint("BOTTOMLEFT", header, "BOTTOMLEFT", -2, 0)
+			bBorder:SetPoint("BOTTOMRIGHT", header, "BOTTOMRIGHT", 2, 0)
+			bBorder:SetHeight(T.mult or 1)
+			header.shestakBottomBorder = bBorder
+		end
+		header.shestakBottomBorder:Show()
+
+		-- 隐藏原生粗糙的底部边线，避免样式冲突与粗细不均
+		if header._bottomBorder then
+			header._bottomBorder:SetAlpha(0)
+		end
 	end
 
 	-- 3. 标题栏文本与战斗计时

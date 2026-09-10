@@ -1087,47 +1087,75 @@ T.UnitFrame_OnEnter = function(self)
 end
 
 local function createAnchors()
+	-- 防御性检查：若未启用 Filger 或 P_BUFF_ICON_Anchor 未被 FilgerSpells 创建，则直接退出，防止空指针索引
+	if not P_BUFF_ICON_Anchor then return end
+
 	P_BUFF_ICON_Anchor:SetPoint(unpack(C.position.filger.player_buff_icon))
 	P_BUFF_ICON_Anchor:SetSize(C.filger.buffs_size, C.filger.buffs_size)
 
-	P_PROC_ICON_Anchor:SetPoint(unpack(C.position.filger.player_proc_icon))
-	P_PROC_ICON_Anchor:SetSize(C.filger.buffs_size, C.filger.buffs_size)
+	if P_PROC_ICON_Anchor then
+		P_PROC_ICON_Anchor:SetPoint(unpack(C.position.filger.player_proc_icon))
+		P_PROC_ICON_Anchor:SetSize(C.filger.buffs_size, C.filger.buffs_size)
+	end
 
-	SPECIAL_P_BUFF_ICON_Anchor:SetPoint(unpack(C.position.filger.special_proc_icon))
-	SPECIAL_P_BUFF_ICON_Anchor:SetSize(C.filger.buffs_size, C.filger.buffs_size)
+	if SPECIAL_P_BUFF_ICON_Anchor then
+		SPECIAL_P_BUFF_ICON_Anchor:SetPoint(unpack(C.position.filger.special_proc_icon))
+		SPECIAL_P_BUFF_ICON_Anchor:SetSize(C.filger.buffs_size, C.filger.buffs_size)
+	end
 
-	T_DEBUFF_ICON_Anchor:SetPoint(unpack(C.position.filger.target_debuff_icon))
-	T_DEBUFF_ICON_Anchor:SetSize(C.filger.buffs_size, C.filger.buffs_size)
+	if T_DEBUFF_ICON_Anchor then
+		T_DEBUFF_ICON_Anchor:SetPoint(unpack(C.position.filger.target_debuff_icon))
+		T_DEBUFF_ICON_Anchor:SetSize(C.filger.buffs_size, C.filger.buffs_size)
+	end
 
-	T_CC_Anchor:SetPoint(unpack(C.position.filger.target_buff_icon))
-	T_CC_Anchor:SetSize(C.filger.pvp_size, C.filger.pvp_size)
+	if T_CC_Anchor then
+		T_CC_Anchor:SetPoint(unpack(C.position.filger.target_buff_icon))
+		T_CC_Anchor:SetSize(C.filger.pvp_size, C.filger.pvp_size)
+	end
 
-	T_BUFF_Anchor:SetPoint("LEFT", T_CC_Anchor, "LEFT", C.filger.pvp_size + 3, 0)
-	T_BUFF_Anchor:SetSize(C.filger.pvp_size, C.filger.pvp_size)
+	if T_BUFF_Anchor and T_CC_Anchor then
+		T_BUFF_Anchor:SetPoint("LEFT", T_CC_Anchor, "LEFT", C.filger.pvp_size + 3, 0)
+		T_BUFF_Anchor:SetSize(C.filger.pvp_size, C.filger.pvp_size)
+	end
 
-	PVE_PVP_DEBUFF_Anchor:SetPoint(unpack(C.position.filger.pve_debuff))
-	PVE_PVP_DEBUFF_Anchor:SetSize(C.filger.pvp_size, C.filger.pvp_size)
+	if PVE_PVP_DEBUFF_Anchor then
+		PVE_PVP_DEBUFF_Anchor:SetPoint(unpack(C.position.filger.pve_debuff))
+		PVE_PVP_DEBUFF_Anchor:SetSize(C.filger.pvp_size, C.filger.pvp_size)
+	end
 
-	FOCUS_CC_Anchor:SetPoint(unpack(C.position.filger.focus_cc))
-	FOCUS_CC_Anchor:SetSize(221, 25)
+	if FOCUS_CC_Anchor then
+		FOCUS_CC_Anchor:SetPoint(unpack(C.position.filger.focus_cc))
+		FOCUS_CC_Anchor:SetSize(221, 25)
+	end
 
 	local IsPortrait = C.unitframe.portrait_enable and C.unitframe.portrait_type ~= "OVERLAY"
 
-	T_DE_BUFF_BAR_Anchor:SetPoint(C.position.filger.target_bar[1], IsPortrait and "oUF_Target_Portrait" or C.position.filger.target_bar[2], C.position.filger.target_bar[3], IsPortrait and C.position.filger.target_bar[4] - 3 or C.position.filger.target_bar[4], IsPortrait and C.position.filger.target_bar[5] + 38 or C.position.filger.target_bar[5])
-	T_DE_BUFF_BAR_Anchor:SetSize(218, 25)
+	if T_DE_BUFF_BAR_Anchor then
+		T_DE_BUFF_BAR_Anchor:SetPoint(C.position.filger.target_bar[1], IsPortrait and "oUF_Target_Portrait" or C.position.filger.target_bar[2], C.position.filger.target_bar[3], IsPortrait and C.position.filger.target_bar[4] - 3 or C.position.filger.target_bar[4], IsPortrait and C.position.filger.target_bar[5] + 38 or C.position.filger.target_bar[5])
+		T_DE_BUFF_BAR_Anchor:SetSize(218, 25)
+	end
 
-	P_BUFF_BAR_Anchor:SetPoint(C.position.filger.player_bar[1], IsPortrait and "oUF_Player_Portrait" or C.position.filger.player_bar[2], C.position.filger.player_bar[3], IsPortrait and C.position.filger.player_bar[4] + 3 or C.position.filger.player_bar[4], IsPortrait and C.position.filger.player_bar[5] + 38 or C.position.filger.player_bar[5])
-	P_BUFF_BAR_Anchor:SetSize(218, 25)
+	if P_BUFF_BAR_Anchor then
+		P_BUFF_BAR_Anchor:SetPoint(C.position.filger.player_bar[1], IsPortrait and "oUF_Player_Portrait" or C.position.filger.player_bar[2], C.position.filger.player_bar[3], IsPortrait and C.position.filger.player_bar[4] + 3 or C.position.filger.player_bar[4], IsPortrait and C.position.filger.player_bar[5] + 38 or C.position.filger.player_bar[5])
+		P_BUFF_BAR_Anchor:SetSize(218, 25)
+	end
 
 	P_BUFF_ICON_Anchor.done = true
 end
 
 local frame = CreateFrame("Frame")
 frame:RegisterEvent("PLAYER_LOGIN")
-frame:SetScript("OnEvent", function()
+frame:SetScript("OnEvent", function(self)
+	-- 当未启用 Filger 或 Anchor 框架未初始化时安全跳过，并及时注销事件避免重复回调
+	if C.unitframe.enable ~= true or C.filger.enable ~= true or not P_BUFF_ICON_Anchor then
+		self:UnregisterEvent("PLAYER_LOGIN")
+		return
+	end
+
 	if not P_BUFF_ICON_Anchor.done then
 		createAnchors()
 	end
+	self:UnregisterEvent("PLAYER_LOGIN")
 end)
 
 T.PostCreateFilgerIcon = function(element, button, options)
@@ -1197,6 +1225,9 @@ T.PostCreateFilgerIcon = function(element, button, options)
 end
 
 T.CreateFilgerAuras = function(self, unit)
+	-- 防御性检查：若未启用 Filger 或 P_BUFF_ICON_Anchor 未被 FilgerSpells 创建，则直接退出
+	if C.unitframe.enable ~= true or C.filger.enable ~= true or not P_BUFF_ICON_Anchor then return end
+
 	if unit == "player" then
 		if C.filger.show_pvp_player then
 			-- Crowd controls

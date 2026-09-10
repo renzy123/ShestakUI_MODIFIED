@@ -74,32 +74,25 @@ local function SkinBar(bar)
 		bar.shestakBackdrop:SetPoint("BOTTOMRIGHT", bar.fill, 2, -2)
 	end
 
-	-- 5. 字体排版与 2px 内间距锚定（需求：左右增加 2px 内间距，字体使用原设置 C.media.normal_font / 11px）
-	local font = C.media.normal_font
-	local fontSize = 11
-	local fontStyle = "OUTLINE"
-
-	if bar.pos then
-		bar.pos:SetFont(font, fontSize, fontStyle)
-		bar.pos:SetShadowOffset(1, -1)
-	end
-	if bar.label then
-		bar.label:SetFont(font, fontSize, fontStyle)
-		bar.label:SetShadowOffset(1, -1)
-	end
-	if bar.amount then
-		bar.amount:SetFont(font, fontSize, fontStyle)
-		bar.amount:SetShadowOffset(1, -1)
+	-- 5. 字体大小设为 8px，保持原本字体与渲染不作改变，并维持左右 2px 内间距
+	local function SetFontSize8(fs)
+		if not fs or not fs.GetFont then return end
+		local fontPath, _, flags = fs:GetFont()
+		if fontPath then
+			fs:SetFont(fontPath, 8, flags)
+		end
 	end
 
 	local function ApplyShestakTextOffsets()
 		if bar.pos then
 			bar.pos:ClearAllPoints()
 			bar.pos:SetPoint("LEFT", bar.fill, "LEFT", 2, 0)
+			SetFontSize8(bar.pos)
 		end
 		if bar.amount then
 			bar.amount:ClearAllPoints()
 			bar.amount:SetPoint("RIGHT", bar.fill, "RIGHT", -2, 0)
+			SetFontSize8(bar.amount)
 		end
 		if bar.label then
 			bar.label:ClearAllPoints()
@@ -113,10 +106,11 @@ local function SkinBar(bar)
 			else
 				bar.label:SetPoint("RIGHT", bar.fill, "RIGHT", -2, 0)
 			end
+			SetFontSize8(bar.label)
 		end
 	end
 
-	-- 覆盖原生的文本偏移逻辑，确保原生代码在调用 ApplyTextOffsets 时维持左右各 2px 的内间距
+	-- 覆盖原生的文本偏移逻辑，确保原生代码在调用 ApplyTextOffsets 时维持左右各 2px 内间距及 8px 字号
 	bar.ApplyTextOffsets = ApplyShestakTextOffsets
 	ApplyShestakTextOffsets()
 end
@@ -218,7 +212,7 @@ local function SkinWindow(W)
 	end
 end
 
--- 全局材质与字体拦截：保证即使未刷新时也能解析为 ShestakUI 材质和字体
+-- 全局材质源头拦截：使状态条平滑材质生效，字体不做改动保持原生
 local function HookGlobalMedia()
 	local EUI = _G.EllesmereUI
 	if not EUI then return end
@@ -228,20 +222,8 @@ local function HookGlobalMedia()
 		EUI._shestakDMPatched = true
 		local origResolve = EUI.ResolveTexturePath
 		EUI.ResolveTexturePath = function(tbl, key, fallback)
-			-- 优先将伤害统计条材质替换为 ShestakUI 平滑纹理
+			-- 将伤害统计条材质替换为 ShestakUI 平滑纹理
 			return C.media.texture
-		end
-	end
-
-	-- 字体解析源头替换
-	if EUI.GetFontPath and not EUI._shestakFontPatched then
-		EUI._shestakFontPatched = true
-		local origGetFont = EUI.GetFontPath
-		EUI.GetFontPath = function(moduleKey)
-			if moduleKey == "damageMeters" or moduleKey == "damageMeter" then
-				return C.media.normal_font
-			end
-			return origGetFont(moduleKey)
 		end
 	end
 end

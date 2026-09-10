@@ -115,154 +115,199 @@ local function SkinBar(bar)
 	ApplyShestakTextOffsets()
 end
 
+-- 状态更新：持续确保原生底色与原生边框隐藏，维持标题与文本样式
+local function UpdateWindowState(W)
+	if not W or not W.frame then return end
+	local frame = W.frame
+	local header = W.header
+
+	-- 确保原生底色和原生外边框始终隐藏，防止原生逻辑在配置变更时重新显示
+	if frame._bg then frame._bg:SetAlpha(0) end
+	if W.windowBorderTarget then W.windowBorderTarget:Hide() end
+	if W.sourceFrame and W.sourceFrame._bg then W.sourceFrame._bg:SetAlpha(0) end
+	if header and header._hdrBg then header._hdrBg:SetAlpha(0) end
+	if header and header._bottomBorder then header._bottomBorder:SetAlpha(0) end
+
+	-- 重新应用标题栏文本与图标样式（10px 文本与 12px 图标）
+	if W.ApplyHeaderStyling then
+		W.ApplyHeaderStyling()
+	end
+end
+
 -- 美化单个伤害统计窗口（支持最多 5 个多实例窗口）
 local function SkinWindow(W)
-	if not W or not W.frame or W._shestakSkinned then return end
-	W._shestakSkinned = true
+	if not W or not W.frame then return end
 
 	local frame = W.frame
 	local header = W.header
 
-	-- 1. 主窗口外边框与半透明暗底
-	if not frame.backdrop then
-		frame:CreateBackdrop("Transparent")
-		if frame.backdrop then
-			frame.backdrop:ClearAllPoints()
-			frame.backdrop:SetPoint("TOPLEFT", frame, "TOPLEFT", -2, 2)
-			frame.backdrop:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 2, -2)
-		end
-	end
+	-- 首次美化初始化
+	if not W._shestakSkinned then
+		W._shestakSkinned = true
 
-	-- 隐藏原生粗糙底色纹理与原生外边框目标
-	if frame._bg then
-		frame._bg:SetAlpha(0)
-	end
-	if W.windowBorderTarget then
-		W.windowBorderTarget:Hide()
-	end
-
-	-- 2. 标题栏顶板美化（Overlay 风格）与底部边框美化
-	if header then
-		if not header.shestakHeader then
-			local hBg = CreateFrame("Frame", nil, header)
-			hBg:SetTemplate("Overlay")
-			hBg:SetAllPoints(header)
-			hBg:SetFrameLevel(header:GetFrameLevel() - 1)
-			header.shestakHeader = hBg
-
-			-- 隐藏原生纯色背景
-			if header._hdrBg then header._hdrBg:SetAlpha(0) end
-		end
-
-		-- 标题栏底部边框美化：创建 ShestakUI 标准 1px 黑色像素分界线，完美对接主窗口外边框
-		if not header.shestakBottomBorder then
-			local bBorder = header:CreateTexture(nil, "OVERLAY", nil, 7)
-			bBorder:SetTexture(C.media.blank)
-			bBorder:SetVertexColor(unpack(C.media.border_color))
-			bBorder:SetPoint("BOTTOMLEFT", header, "BOTTOMLEFT", -2, 0)
-			bBorder:SetPoint("BOTTOMRIGHT", header, "BOTTOMRIGHT", 2, 0)
-			bBorder:SetHeight(T.mult or 1)
-			header.shestakBottomBorder = bBorder
-		end
-		header.shestakBottomBorder:Show()
-
-		-- 隐藏原生粗糙的底部边线，避免样式冲突与粗细不均
-		if header._bottomBorder then
-			header._bottomBorder:SetAlpha(0)
-		end
-	end
-
-	-- 3. 标题栏文本（10px）与图标大小（12px）调整，其他不做额外改变
-	local function ApplyHeaderStyling()
-		if W.titleText and W.titleText.GetFont then
-			local font, _, flags = W.titleText:GetFont()
-			if font then
-				W.titleText:SetFont(font, 10, flags)
-			end
-		end
-		if W.timerText and W.timerText.GetFont then
-			local font, _, flags = W.timerText:GetFont()
-			if font then
-				W.timerText:SetFont(font, 10, flags)
+		-- 1. 主窗口外边框与半透明暗底
+		if not frame.backdrop then
+			frame:CreateBackdrop("Transparent")
+			if frame.backdrop then
+				frame.backdrop:ClearAllPoints()
+				frame.backdrop:SetPoint("TOPLEFT", frame, "TOPLEFT", -2, 2)
+				frame.backdrop:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 2, -2)
 			end
 		end
 
-		local iconSz = 12
-		local btnPad = 2
-		if W.hdrBtns then
-			local bi = 0
-			for _, btn in ipairs(W.hdrBtns) do
-				if btn:IsShown() then
-					bi = bi + 1
-					btn:SetSize(iconSz, iconSz)
-					btn:ClearAllPoints()
-					btn:SetPoint("RIGHT", W.header, "RIGHT", -(iconSz * (bi - 1) + btnPad * bi + 2), 0)
+		-- 2. 标题栏顶板美化（Overlay 风格）与底部边框美化
+		if header then
+			if not header.shestakHeader then
+				local hBg = CreateFrame("Frame", nil, header)
+				hBg:SetTemplate("Overlay")
+				hBg:SetAllPoints(header)
+				hBg:SetFrameLevel(header:GetFrameLevel() - 1)
+				header.shestakHeader = hBg
+			end
+
+			-- 标题栏底部边框美化：创建 ShestakUI 标准 1px 黑色像素分界线，完美对接主窗口外边框
+			if not header.shestakBottomBorder then
+				local bBorder = header:CreateTexture(nil, "OVERLAY", nil, 7)
+				bBorder:SetTexture(C.media.blank)
+				bBorder:SetVertexColor(unpack(C.media.border_color))
+				bBorder:SetPoint("BOTTOMLEFT", header, "BOTTOMLEFT", -2, 0)
+				bBorder:SetPoint("BOTTOMRIGHT", header, "BOTTOMRIGHT", 2, 0)
+				bBorder:SetHeight(T.mult or 1)
+				header.shestakBottomBorder = bBorder
+			end
+			header.shestakBottomBorder:Show()
+		end
+
+		-- 3. 标题栏文本（10px）与图标大小（12px）调整，其他不做额外改变
+		local function ApplyHeaderStyling()
+			if W.titleText and W.titleText.GetFont then
+				local font, _, flags = W.titleText:GetFont()
+				if font then
+					W.titleText:SetFont(font, 10, flags)
 				end
 			end
-		end
-		if W.hdrIcons then
-			for _, icon in ipairs(W.hdrIcons) do
-				icon:SetSize(iconSz, iconSz)
+			if W.timerText and W.timerText.GetFont then
+				local font, _, flags = W.timerText:GetFont()
+				if font then
+					W.timerText:SetFont(font, 10, flags)
+				end
 			end
-		end
-		if W._closeIconTex then
-			W._closeIconTex:SetSize(iconSz, iconSz)
-		end
-		if W.FitTitle then
-			W.FitTitle()
-		end
-	end
 
-	ApplyHeaderStyling()
-	W.ApplyHeaderStyling = ApplyHeaderStyling
-
-	-- 4. 批量美化已有行池（主窗口 rowPool 和 技能池 spellPool）
-	if W.rowPool then
-		for _, bar in ipairs(W.rowPool) do
-			SkinBar(bar)
-		end
-	end
-	if W.spellPool then
-		for _, bar in ipairs(W.spellPool) do
-			SkinBar(bar)
-		end
-	end
-	if W.stickyPlayer then
-		SkinBar(W.stickyPlayer)
-	end
-
-	-- 5. 挂钩窗口刷新，确保数据更新、增量渲染时美化实时维持
-	if W.Refresh then
-		hooksecurefunc(W, "Refresh", function()
-			ApplyHeaderStyling()
-			if W.rowPool then
-				for _, bar in ipairs(W.rowPool) do
-					if bar.row and bar.row:IsShown() then
-						SkinBar(bar)
-						if bar.ApplyTextOffsets then
-							bar.ApplyTextOffsets()
-						end
+			local iconSz = 12
+			local btnPad = 2
+			if W.hdrBtns then
+				local bi = 0
+				for _, btn in ipairs(W.hdrBtns) do
+					if btn:IsShown() then
+						bi = bi + 1
+						btn:SetSize(iconSz, iconSz)
+						btn:ClearAllPoints()
+						btn:SetPoint("RIGHT", W.header, "RIGHT", -(iconSz * (bi - 1) + btnPad * bi + 2), 0)
 					end
 				end
 			end
-			if W.spellPool then
-				for _, bar in ipairs(W.spellPool) do
-					if bar.row and bar.row:IsShown() then
-						SkinBar(bar)
-						if bar.ApplyTextOffsets then
-							bar.ApplyTextOffsets()
+			if W.hdrIcons then
+				for _, icon in ipairs(W.hdrIcons) do
+					icon:SetSize(iconSz, iconSz)
+				end
+			end
+			if W._closeIconTex then
+				W._closeIconTex:SetSize(iconSz, iconSz)
+			end
+			if W.FitTitle then
+				W.FitTitle()
+			end
+		end
+
+		W.ApplyHeaderStyling = ApplyHeaderStyling
+
+		-- 4. 批量美化已有行池（主窗口 rowPool 和 技能池 spellPool）
+		if W.rowPool then
+			for _, bar in ipairs(W.rowPool) do
+				SkinBar(bar)
+			end
+		end
+		if W.spellPool then
+			for _, bar in ipairs(W.spellPool) do
+				SkinBar(bar)
+			end
+		end
+		if W.stickyPlayer then
+			SkinBar(W.stickyPlayer)
+		end
+
+		-- 5. 挂钩窗口刷新，确保数据更新、增量渲染时美化实时维持
+		if W.Refresh then
+			hooksecurefunc(W, "Refresh", function()
+				ApplyHeaderStyling()
+				if W.rowPool then
+					for _, bar in ipairs(W.rowPool) do
+						if bar.row and bar.row:IsShown() then
+							SkinBar(bar)
+							if bar.ApplyTextOffsets then
+								bar.ApplyTextOffsets()
+							end
 						end
 					end
 				end
-			end
-			if W.stickyPlayer and W.stickyPlayer.row and W.stickyPlayer.row:IsShown() then
-				SkinBar(W.stickyPlayer)
-				if W.stickyPlayer.ApplyTextOffsets then
-					W.stickyPlayer.ApplyTextOffsets()
+				if W.spellPool then
+					for _, bar in ipairs(W.spellPool) do
+						if bar.row and bar.row:IsShown() then
+							SkinBar(bar)
+							if bar.ApplyTextOffsets then
+								bar.ApplyTextOffsets()
+							end
+						end
+					end
 				end
-			end
-		end)
+				if W.stickyPlayer and W.stickyPlayer.row and W.stickyPlayer.row:IsShown() then
+					SkinBar(W.stickyPlayer)
+					if W.stickyPlayer.ApplyTextOffsets then
+						W.stickyPlayer.ApplyTextOffsets()
+					end
+				end
+			end)
+		end
+
+		-- 挂钩来源技能详情刷新，保证技能明细行同样应用 ShestakUI 边框与平滑材质
+		if W.RefreshBreakdown then
+			hooksecurefunc(W, "RefreshBreakdown", function()
+				if W.spellPool then
+					for _, bar in ipairs(W.spellPool) do
+						if bar.row and bar.row:IsShown() then
+							SkinBar(bar)
+							if bar.ApplyTextOffsets then
+								bar.ApplyTextOffsets()
+							end
+						end
+					end
+				end
+			end)
+		end
+
+		-- 挂钩主页选择与关闭界面，切换模式时维持标题与边框样式
+		if W.ShowHome then
+			hooksecurefunc(W, "ShowHome", function()
+				UpdateWindowState(W)
+			end)
+		end
+
+		-- 挂钩新建窗口按钮点击，在点击新增窗口的第一时间调度美化扫描
+		if W.winActionBtn and not W.winActionBtn._shestakHooked then
+			W.winActionBtn._shestakHooked = true
+			W.winActionBtn:HookScript("OnClick", function()
+				C_Timer.After(0.01, function()
+					ApplyEllesmereDMSkin()
+				end)
+			end)
+		end
+
+		-- 打印适配日志，方便排错与确认
+		print("|cff00ff00ShestakUI:|r 成功美化伤害统计窗口 [" .. (W.idx or "?") .. "]。")
 	end
+
+	-- 每次执行确保隐藏原生元素并维持当前样式
+	UpdateWindowState(W)
 end
 
 -- 全局材质源头拦截：使状态条平滑材质生效，字体不做改动保持原生
@@ -282,7 +327,7 @@ local function HookGlobalMedia()
 end
 
 -- 主执行逻辑：扫描美化所有活跃窗口实例
-local function ApplyEllesmereDMSkin()
+function ApplyEllesmereDMSkin()
 	-- 延迟判断配置开关，若配置中显式设为 false 则跳过
 	if C.skins and C.skins.ellesmere_damagemeters == false then return 0 end
 
@@ -294,26 +339,87 @@ local function ApplyEllesmereDMSkin()
 	local edmNS = EUI and EUI._ModuleNS and EUI._ModuleNS["EllesmereUIDamageMeters"]
 	local windows = edmNS and edmNS._windows
 
-	-- 2. 通过 internal _windows 表扫描
+	-- 挂钩 EllesmereUIDamageMeters 原生生命周期函数，确保新建窗口或设置变更时即时自动适配
+	if edmNS and not edmNS._shestakLifecycleHooked then
+		edmNS._shestakLifecycleHooked = true
+
+		-- 新窗口创建与窗口边框更新拦截（无论以何种途径创建新窗口均会触发）
+		if edmNS.ApplyWindowBorder then
+			hooksecurefunc(edmNS, "ApplyWindowBorder", function()
+				ApplyEllesmereDMSkin()
+			end)
+		end
+
+		-- 解锁注册与窗口数量变更拦截
+		if edmNS.RegisterDMUnlock then
+			hooksecurefunc(edmNS, "RegisterDMUnlock", function()
+				ApplyEllesmereDMSkin()
+			end)
+		end
+
+		-- 标题栏样式重置拦截（保证 10px 文本与 12px 图标不被设置面板覆盖）
+		if edmNS.ApplyHeader then
+			hooksecurefunc(edmNS, "ApplyHeader", function()
+				ApplyEllesmereDMSkin()
+			end)
+		end
+
+		-- 背景重置拦截（保证半透明黑色背景不被覆盖为原生不透明色）
+		if edmNS.ApplyBackground then
+			hooksecurefunc(edmNS, "ApplyBackground", function()
+				ApplyEllesmereDMSkin()
+			end)
+		end
+
+		-- 状态条文本偏移重置拦截
+		if edmNS.ApplyBarTextOffsets then
+			hooksecurefunc(edmNS, "ApplyBarTextOffsets", function()
+				ApplyEllesmereDMSkin()
+			end)
+		end
+	end
+
+	-- 挂钩全局配置重置与 Profile 重建函数
+	if _G._EDM_Apply and not _G._EDM_Apply_shestakHooked then
+		_G._EDM_Apply_shestakHooked = true
+		hooksecurefunc(_G, "_EDM_Apply", function()
+			C_Timer.After(0.05, function()
+				ApplyEllesmereDMSkin()
+			end)
+		end)
+	end
+
+	-- 2. 通过 internal _windows 表扫描美化所有窗口
 	if windows then
 		for _, W in ipairs(windows) do
-			if W and W.frame and not W._shestakSkinned then
+			if W and W.frame then
+				if not W._shestakSkinned then
+					skinnedCount = skinnedCount + 1
+				end
 				SkinWindow(W)
-				skinnedCount = skinnedCount + 1
 			end
 		end
 	end
 
-	-- 3. 通过全局 Frame 对象 EllesmereUIDMFrame1 ~ EllesmereUIDMFrame5 兜底扫描
+	-- 3. 通过全局 Frame 对象 EllesmereUIDMFrame1 ~ EllesmereUIDMFrame5 兜底扫描与 OnShow 挂钩
 	for i = 1, 5 do
 		local frame = _G["EllesmereUIDMFrame" .. i]
-		if frame and not frame._shestakSkinned then
+		if frame then
+			if not frame._shestakOnShowHooked then
+				frame._shestakOnShowHooked = true
+				frame:HookScript("OnShow", function()
+					ApplyEllesmereDMSkin()
+				end)
+			end
+
 			-- 尝试在 windows 中匹配对应的窗口逻辑对象 W
 			local targetW = windows and windows[i]
 			if targetW then
+				if not targetW._shestakSkinned then
+					skinnedCount = skinnedCount + 1
+				end
 				SkinWindow(targetW)
-				skinnedCount = skinnedCount + 1
-			else
+			elseif not frame._shestakSkinned then
 				-- 独立美化原生 frame 外观
 				frame._shestakSkinned = true
 				frame:CreateBackdrop("Transparent")
@@ -331,7 +437,7 @@ local function ApplyEllesmereDMSkin()
 	return skinnedCount
 end
 
--- 模块事件加载与异步轮询监控
+-- 模块事件加载与异步监控
 local f = CreateFrame("Frame")
 f:RegisterEvent("PLAYER_LOGIN")
 f:RegisterEvent("PLAYER_ENTERING_WORLD")
@@ -352,7 +458,7 @@ f:SetScript("OnEvent", function(self, event, addon)
 	end)
 end)
 
--- 轻量轮询检测（持续 10 秒，每秒检测 1 次，确保异步延迟创建的窗口全量捕获）
+-- 轻量轮询检测（持续 10 秒，每秒检测 1 次，确保初始异步创建的窗口全量捕获）
 local tickerCount = 0
 C_Timer.NewTicker(1.0, function(self)
 	tickerCount = tickerCount + 1

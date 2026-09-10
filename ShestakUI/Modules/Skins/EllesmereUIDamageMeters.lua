@@ -74,23 +74,44 @@ local function SkinBar(bar)
 		bar.shestakBackdrop:SetPoint("BOTTOMRIGHT", bar.fill, 2, -2)
 	end
 
-	-- 5. 字体排版与阴影统一
-	local font = C.media.normal_font
-	local fontSize = 11
-	local fontStyle = "OUTLINE"
+	-- 5. 字体排版与 1px 间距锚定（要求：条文本字号 8px，文本与条及边框保持 1px 间距）
+	local font = (T.client == "zhCN" or T.client == "zhTW") and C.media.normal_font or C.media.pixel_font
+	local fontSize = 8
+	local fontStyle = (font == C.media.pixel_font) and "MONOCHROMEOUTLINE" or "OUTLINE"
 
-	if bar.pos then
-		bar.pos:SetFont(font, fontSize, fontStyle)
-		bar.pos:SetShadowOffset(1, -1)
+	local function ApplyShestakTextStyle()
+		if bar.pos then
+			bar.pos:SetFont(font, fontSize, fontStyle)
+			bar.pos:SetShadowOffset(0, 0)
+			bar.pos:ClearAllPoints()
+			bar.pos:SetPoint("LEFT", bar.fill, "LEFT", 1, 0)
+		end
+		if bar.amount then
+			bar.amount:SetFont(font, fontSize, fontStyle)
+			bar.amount:SetShadowOffset(0, 0)
+			bar.amount:ClearAllPoints()
+			bar.amount:SetPoint("RIGHT", bar.fill, "RIGHT", -1, 0)
+		end
+		if bar.label then
+			bar.label:SetFont(font, fontSize, fontStyle)
+			bar.label:SetShadowOffset(0, 0)
+			bar.label:ClearAllPoints()
+			if bar.pos and bar.pos:GetText() and bar.pos:GetText() ~= "" then
+				bar.label:SetPoint("LEFT", bar.pos, "RIGHT", 1, 0)
+			else
+				bar.label:SetPoint("LEFT", bar.fill, "LEFT", 1, 0)
+			end
+			if bar.amount then
+				bar.label:SetPoint("RIGHT", bar.amount, "LEFT", -1, 0)
+			else
+				bar.label:SetPoint("RIGHT", bar.fill, "RIGHT", -1, 0)
+			end
+		end
 	end
-	if bar.label then
-		bar.label:SetFont(font, fontSize, fontStyle)
-		bar.label:SetShadowOffset(1, -1)
-	end
-	if bar.amount then
-		bar.amount:SetFont(font, fontSize, fontStyle)
-		bar.amount:SetShadowOffset(1, -1)
-	end
+
+	-- 覆盖原生的文本偏移逻辑，确保原生代码在调用 ApplyTextOffsets 时维持 1px 间距
+	bar.ApplyTextOffsets = ApplyShestakTextStyle
+	ApplyShestakTextStyle()
 end
 
 -- 美化单个伤害统计窗口（支持最多 5 个多实例窗口）
@@ -164,6 +185,9 @@ local function SkinWindow(W)
 				for _, bar in ipairs(W.rowPool) do
 					if bar.row and bar.row:IsShown() then
 						SkinBar(bar)
+						if bar.ApplyTextOffsets then
+							bar.ApplyTextOffsets()
+						end
 					end
 				end
 			end
@@ -171,11 +195,17 @@ local function SkinWindow(W)
 				for _, bar in ipairs(W.spellPool) do
 					if bar.row and bar.row:IsShown() then
 						SkinBar(bar)
+						if bar.ApplyTextOffsets then
+							bar.ApplyTextOffsets()
+						end
 					end
 				end
 			end
 			if W.stickyPlayer and W.stickyPlayer.row and W.stickyPlayer.row:IsShown() then
 				SkinBar(W.stickyPlayer)
+				if W.stickyPlayer.ApplyTextOffsets then
+					W.stickyPlayer.ApplyTextOffsets()
+				end
 			end
 		end)
 	end

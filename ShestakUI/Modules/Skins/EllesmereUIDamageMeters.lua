@@ -115,7 +115,7 @@ local function SkinBar(bar)
 	ApplyShestakTextOffsets()
 end
 
--- 状态更新：持续确保原生底色与原生边框隐藏，维持标题与文本样式
+-- 状态更新：持续确保原生底色与原生边框隐藏，维持标题与文本样式及 12px 间距
 local function UpdateWindowState(W)
 	if not W or not W.frame then return end
 	local frame = W.frame
@@ -131,6 +131,28 @@ local function UpdateWindowState(W)
 	-- 重新应用标题栏文本与图标样式（10px 文本与 12px 图标）
 	if W.ApplyHeaderStyling then
 		W.ApplyHeaderStyling()
+	end
+
+	-- 维持标题行与首行统计之间的 12px 垂直间距
+	if W.viewport and header then
+		local numPoints = W.viewport:GetNumPoints()
+		for pIdx = 1, numPoints do
+			local point, relTo, relPoint, x, y = W.viewport:GetPoint(pIdx)
+			if point == "TOPLEFT" and relTo == header and relPoint == "BOTTOMLEFT" and (y or 0) > -12 then
+				W.viewport:SetPoint("TOPLEFT", header, "BOTTOMLEFT", x or 0, -12)
+				break
+			end
+		end
+	end
+	if W.sourceFrame and header then
+		local numPoints = W.sourceFrame:GetNumPoints()
+		for pIdx = 1, numPoints do
+			local point, relTo, relPoint, x, y = W.sourceFrame:GetPoint(pIdx)
+			if point == "TOPLEFT" and relTo == header and relPoint == "BOTTOMLEFT" and (y or 0) > -12 then
+				W.sourceFrame:SetPoint("TOPLEFT", header, "BOTTOMLEFT", x or 0, -12)
+				break
+			end
+		end
 	end
 end
 
@@ -269,6 +291,57 @@ local function SkinWindow(W)
 			end)
 		end
 
+		-- 6. 调整视口与首行统计间距（标题行和第一行统计之间增加 12px 间距）
+		local HEADER_GAP = 12
+
+		-- 主视口（主伤害统计行池）：TOPLEFT 锚定在 header 的 BOTTOMLEFT 下方 12px
+		if W.viewport and not W.viewport._shestakGapHooked then
+			W.viewport._shestakGapHooked = true
+			local isAdjustingViewport = false
+			hooksecurefunc(W.viewport, "SetPoint", function(self, point, relTo, relPoint, x, y)
+				if isAdjustingViewport then return end
+				if point == "TOPLEFT" and relTo == header and relPoint == "BOTTOMLEFT" then
+					isAdjustingViewport = true
+					self:SetPoint("TOPLEFT", header, "BOTTOMLEFT", x or 0, (y or 0) - HEADER_GAP)
+					isAdjustingViewport = false
+				end
+			end)
+			isAdjustingViewport = true
+			W.viewport:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 0, -HEADER_GAP)
+			isAdjustingViewport = false
+		end
+
+		-- 置顶玩家行（若开启置顶）：TOPLEFT 同样向下偏移 12px
+		if W.stickyPlayer and W.stickyPlayer.row and not W.stickyPlayer.row._shestakGapHooked then
+			W.stickyPlayer.row._shestakGapHooked = true
+			local isAdjustingSticky = false
+			hooksecurefunc(W.stickyPlayer.row, "SetPoint", function(self, point, relTo, relPoint, x, y)
+				if isAdjustingSticky then return end
+				if point == "TOPLEFT" and relTo == header and relPoint == "BOTTOMLEFT" then
+					isAdjustingSticky = true
+					self:SetPoint("TOPLEFT", header, "BOTTOMLEFT", x or 0, (y or 0) - HEADER_GAP)
+					isAdjustingSticky = false
+				end
+			end)
+		end
+
+		-- 来源技能明细视口容器（点击玩家展开的下钻技能列表）：同样向下偏移 12px
+		if W.sourceFrame and not W.sourceFrame._shestakGapHooked then
+			W.sourceFrame._shestakGapHooked = true
+			local isAdjustingSource = false
+			hooksecurefunc(W.sourceFrame, "SetPoint", function(self, point, relTo, relPoint, x, y)
+				if isAdjustingSource then return end
+				if point == "TOPLEFT" and relTo == header and relPoint == "BOTTOMLEFT" then
+					isAdjustingSource = true
+					self:SetPoint("TOPLEFT", header, "BOTTOMLEFT", x or 0, (y or 0) - HEADER_GAP)
+					isAdjustingSource = false
+				end
+			end)
+			isAdjustingSource = true
+			W.sourceFrame:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 0, -HEADER_GAP)
+			isAdjustingSource = false
+		end
+
 		-- 挂钩来源技能详情刷新，保证技能明细行同样应用 ShestakUI 边框与平滑材质
 		if W.RefreshBreakdown then
 			hooksecurefunc(W, "RefreshBreakdown", function()
@@ -303,7 +376,7 @@ local function SkinWindow(W)
 		end
 
 		-- 打印适配日志，方便排错与确认
-		print("|cff00ff00ShestakUI:|r 成功美化伤害统计窗口 [" .. (W.idx or "?") .. "]。")
+		print("|cff00ff00ShestakUI:|r 成功美化伤害统计窗口 [" .. (W.idx or "?") .. "]，已应用 12px 标题与首行统计间距。")
 	end
 
 	-- 每次执行确保隐藏原生元素并维持当前样式

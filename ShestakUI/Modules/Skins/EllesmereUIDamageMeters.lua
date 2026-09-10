@@ -115,7 +115,7 @@ local function SkinBar(bar)
 	ApplyShestakTextOffsets()
 end
 
--- 状态更新：持续确保原生底色与原生边框隐藏，维持标题与文本样式及 6px 间距
+-- 状态更新：持续确保原生底色与原生边框隐藏，维持标题与文本样式及 4px 间距
 local function UpdateWindowState(W)
 	if not W or not W.frame then return end
 	local frame = W.frame
@@ -127,19 +127,23 @@ local function UpdateWindowState(W)
 	if W.sourceFrame and W.sourceFrame._bg then W.sourceFrame._bg:SetAlpha(0) end
 	if header and header._hdrBg then header._hdrBg:SetAlpha(0) end
 	if header and header._bottomBorder then header._bottomBorder:SetAlpha(0) end
+	if header and header.shestakHeader then
+		header.shestakHeader:SetBackdrop(nil)
+		header.shestakHeader:Hide()
+	end
 
 	-- 重新应用标题栏文本与图标样式（10px 文本与 12px 图标）
 	if W.ApplyHeaderStyling then
 		W.ApplyHeaderStyling()
 	end
 
-	-- 维持标题行与首行统计之间的 6px 垂直间距
+	-- 维持标题行与首行统计之间的 4px 垂直间距
 	if W.viewport and header then
 		local numPoints = W.viewport:GetNumPoints()
 		for pIdx = 1, numPoints do
 			local point, relTo, relPoint, x, y = W.viewport:GetPoint(pIdx)
-			if point == "TOPLEFT" and relTo == header and relPoint == "BOTTOMLEFT" and (y or 0) > -6 then
-				W.viewport:SetPoint("TOPLEFT", header, "BOTTOMLEFT", x or 0, -6)
+			if point == "TOPLEFT" and relTo == header and relPoint == "BOTTOMLEFT" and (y or 0) > -4 then
+				W.viewport:SetPoint("TOPLEFT", header, "BOTTOMLEFT", x or 0, -4)
 				break
 			end
 		end
@@ -148,8 +152,8 @@ local function UpdateWindowState(W)
 		local numPoints = W.sourceFrame:GetNumPoints()
 		for pIdx = 1, numPoints do
 			local point, relTo, relPoint, x, y = W.sourceFrame:GetPoint(pIdx)
-			if point == "TOPLEFT" and relTo == header and relPoint == "BOTTOMLEFT" and (y or 0) > -6 then
-				W.sourceFrame:SetPoint("TOPLEFT", header, "BOTTOMLEFT", x or 0, -6)
+			if point == "TOPLEFT" and relTo == header and relPoint == "BOTTOMLEFT" and (y or 0) > -4 then
+				W.sourceFrame:SetPoint("TOPLEFT", header, "BOTTOMLEFT", x or 0, -4)
 				break
 			end
 		end
@@ -167,7 +171,7 @@ local function SkinWindow(W)
 	if not W._shestakSkinned then
 		W._shestakSkinned = true
 
-		-- 1. 主窗口外边框与半透明暗底
+		-- 1. 主窗口外边框与半透明暗底（框体整体拥有 1px 黑色像素边框与半透明暗底）
 		if not frame.backdrop then
 			frame:CreateBackdrop("Transparent")
 			if frame.backdrop then
@@ -177,27 +181,42 @@ local function SkinWindow(W)
 			end
 		end
 
-		-- 2. 标题栏顶板美化（Overlay 风格）与底部边框美化
+		-- 2. 标题栏背景美化（无左右边框，完全依赖框体整体边框包裹）与底部 1px 像素分界线
 		if header then
-			if not header.shestakHeader then
-				local hBg = CreateFrame("Frame", nil, header)
-				hBg:SetTemplate("Overlay")
+			-- 标题栏暗色底板：使用纯色纹理填充，不使用带左右边框的 Template
+			if not header.shestakBg then
+				local hBg = header:CreateTexture(nil, "BACKGROUND", nil, -5)
 				hBg:SetAllPoints(header)
-				hBg:SetFrameLevel(header:GetFrameLevel() - 1)
-				header.shestakHeader = hBg
+				hBg:SetTexture(C.media.blank)
+				hBg:SetVertexColor(0.1, 0.1, 0.1, 1)
+				header.shestakBg = hBg
+			end
+			-- 清理可能残留的带 SetTemplate 边框的容器
+			if header.shestakHeader then
+				header.shestakHeader:SetBackdrop(nil)
+				header.shestakHeader:Hide()
 			end
 
-			-- 标题栏底部边框美化：创建 ShestakUI 标准 1px 黑色像素分界线，完美对接主窗口外边框
+			-- 标题栏底部边框美化：创建 ShestakUI 标准 1px 黑色像素分界线，横向严格贴合内部两端（0 到 0），不延伸出左右多余边框
 			if not header.shestakBottomBorder then
 				local bBorder = header:CreateTexture(nil, "OVERLAY", nil, 7)
 				bBorder:SetTexture(C.media.blank)
 				bBorder:SetVertexColor(unpack(C.media.border_color))
-				bBorder:SetPoint("BOTTOMLEFT", header, "BOTTOMLEFT", -2, 0)
-				bBorder:SetPoint("BOTTOMRIGHT", header, "BOTTOMRIGHT", 2, 0)
+				bBorder:SetPoint("BOTTOMLEFT", header, "BOTTOMLEFT", 0, 0)
+				bBorder:SetPoint("BOTTOMRIGHT", header, "BOTTOMRIGHT", 0, 0)
 				bBorder:SetHeight(T.mult or 1)
 				header.shestakBottomBorder = bBorder
+			else
+				header.shestakBottomBorder:ClearAllPoints()
+				header.shestakBottomBorder:SetPoint("BOTTOMLEFT", header, "BOTTOMLEFT", 0, 0)
+				header.shestakBottomBorder:SetPoint("BOTTOMRIGHT", header, "BOTTOMRIGHT", 0, 0)
+				header.shestakBottomBorder:SetHeight(T.mult or 1)
 			end
 			header.shestakBottomBorder:Show()
+
+			-- 隐藏原生纯色背景与原生边线
+			if header._hdrBg then header._hdrBg:SetAlpha(0) end
+			if header._bottomBorder then header._bottomBorder:SetAlpha(0) end
 		end
 
 		-- 3. 标题栏文本（10px）与图标大小（12px）调整，其他不做额外改变
@@ -291,10 +310,10 @@ local function SkinWindow(W)
 			end)
 		end
 
-		-- 6. 调整视口与首行统计间距（标题行和第一行统计之间增加 6px 间距）
-		local HEADER_GAP = 6
+		-- 6. 调整视口与首行统计间距（标题行和第一行统计之间保持 4px 间距）
+		local HEADER_GAP = 4
 
-		-- 主视口（主伤害统计行池）：TOPLEFT 锚定在 header 的 BOTTOMLEFT 下方 6px
+		-- 主视口（主伤害统计行池）：TOPLEFT 锚定在 header 的 BOTTOMLEFT 下方 4px
 		if W.viewport and not W.viewport._shestakGapHooked then
 			W.viewport._shestakGapHooked = true
 			local isAdjustingViewport = false
@@ -311,7 +330,7 @@ local function SkinWindow(W)
 			isAdjustingViewport = false
 		end
 
-		-- 置顶玩家行（若开启置顶）：TOPLEFT 同样向下偏移 6px
+		-- 置顶玩家行（若开启置顶）：TOPLEFT 同样向下偏移 4px
 		if W.stickyPlayer and W.stickyPlayer.row and not W.stickyPlayer.row._shestakGapHooked then
 			W.stickyPlayer.row._shestakGapHooked = true
 			local isAdjustingSticky = false
@@ -325,7 +344,7 @@ local function SkinWindow(W)
 			end)
 		end
 
-		-- 来源技能明细视口容器（点击玩家展开的下钻技能列表）：同样向下偏移 6px
+		-- 来源技能明细视口容器（点击玩家展开的下钻技能列表）：同样向下偏移 4px
 		if W.sourceFrame and not W.sourceFrame._shestakGapHooked then
 			W.sourceFrame._shestakGapHooked = true
 			local isAdjustingSource = false
@@ -376,7 +395,7 @@ local function SkinWindow(W)
 		end
 
 		-- 打印适配日志，方便排错与确认
-		print("|cff00ff00ShestakUI:|r 成功美化伤害统计窗口 [" .. (W.idx or "?") .. "]，已应用 6px 标题与首行统计间距。")
+		print("|cff00ff00ShestakUI:|r 成功美化伤害统计窗口 [" .. (W.idx or "?") .. "]，标题栏无左右边框，已应用 4px 标题与首行统计间距。")
 	end
 
 	-- 每次执行确保隐藏原生元素并维持当前样式

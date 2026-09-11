@@ -441,7 +441,8 @@ SkinBlizzUI:SetScript("OnEvent", function(_, _, addon)
 			end
 
 			local function SkinNavBarButtons(self)
-				if self:GetParent():GetName() == "WorldMapFrame" then return end
+				local parent = self.GetParent and self:GetParent()
+				if parent and parent.GetName and parent:GetName() == "WorldMapFrame" then return end
 				local total = #self.navList
 				local navButton = self.navList[total]
 				if navButton then

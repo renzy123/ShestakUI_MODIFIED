@@ -1,4 +1,4 @@
-﻿local T, C, L = unpack(ShestakUI)
+local T, C, L = unpack(ShestakUI)
 
 local backdropr, backdropg, backdropb, backdropa = unpack(C.media.backdrop_color)
 local borderr, borderg, borderb, bordera = unpack(C.media.border_color)
@@ -297,11 +297,15 @@ T.SetModifiedBackdrop = function(self)
 			self.overlay:SetVertexColor(C.media.classborder_color[1] * 0.3, C.media.classborder_color[2] * 0.3, C.media.classborder_color[3] * 0.3, 1)
 		end
 		if self.colorText == "Text" then
-			self.Text:SetTextColor(1, 1, 1)
+			if self.Text then self.Text:SetTextColor(1, 1, 1) end
 		elseif self.colorText == "Button" then
-			self.ButtonText:SetTextColor(1, 1, 1)
+			if self.ButtonText then self.ButtonText:SetTextColor(1, 1, 1) end
 		elseif self.colorText == "Name" then
-			_G[self:GetName().."Text"]:SetTextColor(1, 1, 1)
+			-- 兼容具名按钮与无全局名称的匿名按钮（如 BtWQuests 或动态生成的 NavBar 按钮），防止 GetName 为空导致字符串拼接报错
+			local text = (self.GetName and self:GetName() and _G[self:GetName().."Text"]) or self.text or self.Text
+			if text then
+				text:SetTextColor(1, 1, 1)
+			end
 		end
 	end
 end
@@ -312,11 +316,15 @@ T.SetOriginalBackdrop = function(self)
 		self.overlay:SetVertexColor(0.1, 0.1, 0.1, 1)
 	end
 	if self.colorText == "Text" then
-		self.Text:SetTextColor(NORMAL_FONT_COLOR.r, NORMAL_FONT_COLOR.g, NORMAL_FONT_COLOR.b)
+		if self.Text then self.Text:SetTextColor(NORMAL_FONT_COLOR.r, NORMAL_FONT_COLOR.g, NORMAL_FONT_COLOR.b) end
 	elseif self.colorText == "Button" then
-		self.ButtonText:SetTextColor(NORMAL_FONT_COLOR.r, NORMAL_FONT_COLOR.g, NORMAL_FONT_COLOR.b)
+		if self.ButtonText then self.ButtonText:SetTextColor(NORMAL_FONT_COLOR.r, NORMAL_FONT_COLOR.g, NORMAL_FONT_COLOR.b) end
 	elseif self.colorText == "Name" then
-		_G[self:GetName().."Text"]:SetTextColor(NORMAL_FONT_COLOR.r, NORMAL_FONT_COLOR.g, NORMAL_FONT_COLOR.b)
+		-- 兼容具名按钮与无全局名称的匿名按钮（如 BtWQuests 或动态生成的 NavBar 按钮），防止 GetName 为空导致字符串拼接报错
+		local text = (self.GetName and self:GetName() and _G[self:GetName().."Text"]) or self.text or self.Text
+		if text then
+			text:SetTextColor(NORMAL_FONT_COLOR.r, NORMAL_FONT_COLOR.g, NORMAL_FONT_COLOR.b)
+		end
 	end
 end
 

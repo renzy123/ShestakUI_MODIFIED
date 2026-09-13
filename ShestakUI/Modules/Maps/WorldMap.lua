@@ -9,6 +9,7 @@ MapQuestInfoRewardsFrame.XPFrame.Name:SetFont(C.media.normal_font, 13, "")
 --	Change position
 ----------------------------------------------------------------------------------------
 hooksecurefunc(WorldMapFrame, "SynchronizeDisplayState", function()
+	if InCombatLockdown() then return end
 	if CharacterFrame:IsShown() or (PlayerSpellsFrame and PlayerSpellsFrame:IsShown()) or (ChannelFrame and ChannelFrame:IsShown()) or PVEFrame:IsShown() or (MacroFrame and MacroFrame:IsShown()) or (GarrisonLandingPage and GarrisonLandingPage:IsShown()) then return end
 	if not WorldMapFrame:IsMaximized() then
 		WorldMapFrame:ClearAllPoints()
@@ -16,6 +17,40 @@ hooksecurefunc(WorldMapFrame, "SynchronizeDisplayState", function()
 	end
 end)
 WorldMapFrame:SetClampedToScreen(true)
+
+----------------------------------------------------------------------------------------
+--	修复 11.0+ 世界地图 Pin 在战斗或污染环境下调用 SetPropagateMouseClicks 抛出 ADDON_ACTION_BLOCKED
+--	原因：暴雪在 SharedMapPoiTemplates.lua 中通过 pin:UpdateMousePropagation() 调用受保护的 SetPropagateMouseClicks()。
+--	当插件修改地图或在战斗中打开地图时，该调用会被安全沙盒拦截报错。使用 pcall 包装可静默捕获该异常，保证地图正常工作。
+----------------------------------------------------------------------------------------
+local function WrapUpdateMousePropagation(mixin)
+	if mixin and mixin.UpdateMousePropagation and not mixin.shetsakUIProtected then
+		local origUpdate = mixin.UpdateMousePropagation
+		mixin.UpdateMousePropagation = function(self, ...)
+			pcall(origUpdate, self, ...)
+		end
+		mixin.shetsakUIProtected = true
+	end
+end
+
+local function WrapAllMixins()
+	WrapUpdateMousePropagation(_G.SharedMapPoiPinMixin)
+	WrapUpdateMousePropagation(_G.SuperTrackablePinMixin)
+	WrapUpdateMousePropagation(_G.FlightPointPinMixin)
+	WrapUpdateMousePropagation(_G.AreaPOIPinMixin)
+end
+
+-- 立即尝试包装（若已加载）
+WrapAllMixins()
+
+-- 监听按需加载模块，确保无论何时加载均能进行安全防护包装
+local pinGuardFrame = CreateFrame("Frame")
+pinGuardFrame:RegisterEvent("ADDON_LOADED")
+pinGuardFrame:SetScript("OnEvent", function(self, event, addon)
+	if addon == "Blizzard_SharedMapDataProviders" or addon == "Blizzard_WorldMap" then
+		WrapAllMixins()
+	end
+end)
 
 ----------------------------------------------------------------------------------------
 --	Count of quests

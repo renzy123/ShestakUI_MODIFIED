@@ -1,4 +1,4 @@
-﻿local T, C, L = unpack(ShestakUI)
+local T, C, L = unpack(ShestakUI)
 if C.general.move_blizzard ~= true then return end
 
 ----------------------------------------------------------------------------------------
@@ -9,7 +9,7 @@ local frames = {
 	"QuestLogPopupDetailFrame", "MerchantFrame", "TradeFrame", "MailFrame", "LootFrame",
 	"FriendsFrame", "CinematicFrame", "TabardFrame", "PetStableFrame", "BankFrame",
 	"PetitionFrame", "HelpFrame", "GossipFrame", "DressUpFrame", "GuildRegistrarFrame",
-	"ChatConfigFrame", "RaidBrowserFrame", "InterfaceOptionsFrame", "WorldMapFrame",
+	"ChatConfigFrame", "RaidBrowserFrame", "InterfaceOptionsFrame",
 	"GameMenuFrame", "VideoOptionsFrame", "GuildInviteFrame", "ItemTextFrame",
 	"OpenMailFrame", "StackSplitFrame", "TutorialFrame", "StaticPopup1", "SettingsPanel",
 	"StaticPopup2", "ScrollOfResurrectionSelectionFrame", "CommunitiesFrame", "ShestakUIOptionsPanel"

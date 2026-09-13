@@ -142,25 +142,39 @@ if C.aura and C.aura.player_auras == true then
 		if positionTable and positionTable["PrivateAnchor"] then return end
 
 		if not numBuffs then
-			numBuffs = BuffFrame and BuffFrame.auraFrames and #BuffFrame.auraFrames or 0
+			local count = 0
+			if BuffFrame and BuffFrame.auraFrames then
+				for _, b in ipairs(BuffFrame.auraFrames) do
+					if not b.isAuraAnchor and b.hasValidInfo and b:IsShown() then
+						count = count + 1
+					end
+				end
+			end
+			numBuffs = count
 		end
 		-- BUFF 占 1 行（≤16个）时紧随第 1 行下方；超过 1 行时随第 2 行下移，避免空隙与跳动
-		local rows = numBuffs > rowbuffs and 2 or 1
+		local rows = (numBuffs and numBuffs > rowbuffs) and 2 or 1
 		local buffHeight = (rows * C.aura.player_buff_size) + ((rows - 1) * space)
 		local left = T.IsFramePositionedLeft(BuffsAnchor)
 
 		PrivateAnchor:ClearAllPoints()
 		if left then
-			PrivateAnchor:SetPoint("TOPLEFT", BuffsAnchor, "TOPLEFT", 0, -(buffHeight + space + 2))
+			PrivateAnchor:SetPoint("TOPLEFT", BuffsAnchor, "TOPLEFT", 0, -(buffHeight + space))
 		else
-			PrivateAnchor:SetPoint("TOPRIGHT", BuffsAnchor, "TOPRIGHT", 0, -(buffHeight + space + 2))
+			PrivateAnchor:SetPoint("TOPRIGHT", BuffsAnchor, "TOPRIGHT", 0, -(buffHeight + space))
 		end
 	end
 
 	-- 4. 监听 BUFF 栏更新，动态联动 DEBUFF 垂直位置
 	if BuffFrame and BuffFrame.AuraContainer then
 		hooksecurefunc(BuffFrame.AuraContainer, "UpdateGridLayout", function(_, auras)
-			UpdateDebuffsAnchor(#auras)
+			local count = 0
+			for _, b in ipairs(auras) do
+				if not b.isAuraAnchor and b.hasValidInfo and b:IsShown() then
+					count = count + 1
+				end
+			end
+			UpdateDebuffsAnchor(count)
 		end)
 	end
 
@@ -195,20 +209,26 @@ if C.aura and C.aura.player_auras == true then
 		hooksecurefunc(DebuffFrame.AuraContainer, "UpdateGridLayout", function(_, auras)
 			UpdateDebuffsAnchor()
 
-			if #auras > 0 then
-				DebuffFrame:Show()
-				DebuffFrame.AuraContainer:Show()
-			end
-
-			local previousBuff, aboveBuff
+			local visibleIndex = 0
+			local previousDebuff, aboveDebuff
 			local left = T.IsFramePositionedLeft(BuffsAnchor)
-			for index, aura in ipairs(auras) do
-				aura:SetSize(C.aura.player_buff_size, C.aura.player_buff_size)
 
-				-- 私有光环锚点（BuffFramePrivateAuraAnchorTemplate）是由暴雪沙盒管理的占位框体，
-				-- 仅参与网格排版，其 Icon 与 Duration 均为 Frame 而非 Texture/FontString，跳过常规样式美化
-				if not aura.isAuraAnchor then
+			for _, aura in ipairs(auras) do
+				-- 私有光环锚点（BuffFramePrivateAuraAnchorTemplate）以及无有效数据的空按钮
+				if aura.isAuraAnchor then
+					-- 彻底清除并隐藏可能遗留的背景与边框，设为透明
+					if aura.backdrop then
+						aura.backdrop:Hide()
+					end
+					aura:SetAlpha(0)
+				elseif aura.hasValidInfo and aura:IsShown() then
+					visibleIndex = visibleIndex + 1
+					aura:SetAlpha(1)
+					aura:SetSize(C.aura.player_buff_size, C.aura.player_buff_size)
 					aura:SetTemplate("Default")
+					if aura.backdrop then
+						aura.backdrop:Show()
+					end
 
 					-- 根据减益类型（魔法、诅咒、中毒、疾病、物理等）为边框着色
 					local debuffBorder = aura.Border or aura.DebuffBorder
@@ -237,66 +257,80 @@ if C.aura and C.aura.player_auras == true then
 					else
 						aura:SetBackdropBorderColor(1, 0, 0)
 					end
-				end
 
-				aura:ClearAllPoints()
-				if left then
-					if (index > 1) and (mod(index, rowbuffs) == 1) then
-						aura:SetPoint("TOP", aboveBuff, "BOTTOM", 0, -space)
-						aboveBuff = aura
-					elseif index == 1 then
-						aura:SetPoint("TOPLEFT", PrivateAnchor, "TOPLEFT", 0, 0)
-						aboveBuff = aura
+					aura:ClearAllPoints()
+					if left then
+						if (visibleIndex > 1) and (mod(visibleIndex, rowbuffs) == 1) then
+							aura:SetPoint("TOP", aboveDebuff, "BOTTOM", 0, -space)
+							aboveDebuff = aura
+						elseif visibleIndex == 1 then
+							aura:SetPoint("TOPLEFT", PrivateAnchor, "TOPLEFT", 0, 0)
+							aboveDebuff = aura
+						else
+							aura:SetPoint("LEFT", previousDebuff, "RIGHT", space, 0)
+						end
 					else
-						aura:SetPoint("LEFT", previousBuff, "RIGHT", space, 0)
+						if (visibleIndex > 1) and (mod(visibleIndex, rowbuffs) == 1) then
+							aura:SetPoint("TOP", aboveDebuff, "BOTTOM", 0, -space)
+							aboveDebuff = aura
+						elseif visibleIndex == 1 then
+							aura:SetPoint("TOPRIGHT", PrivateAnchor, "TOPRIGHT", 0, 0)
+							aboveDebuff = aura
+						else
+							aura:SetPoint("RIGHT", previousDebuff, "LEFT", -space, 0)
+						end
+					end
+
+					previousDebuff = aura
+
+					-- 仅对普通纹理类型的 Icon 应用裁切和图层设置
+					if aura.Icon and aura.Icon.SetTexCoord then
+						aura.Icon:CropIcon()
+						if aura.Icon.SetDrawLayer then
+							aura.Icon:SetDrawLayer("BORDER")
+						end
+					end
+
+					-- 持续时间文本格式化（仅限 FontString 类型）
+					local duration = aura.Duration
+					if duration and duration.SetFont then
+						duration:ClearAllPoints()
+						duration:SetPoint("CENTER", 2, 1)
+						duration:SetDrawLayer("ARTWORK")
+						duration:SetFont(C.font.auras_font, C.font.auras_font_size, C.font.auras_font_style)
+						duration:SetShadowOffset(C.font.auras_font_shadow and 1 or 0, C.font.auras_font_shadow and -1 or 0)
+					end
+
+					if aura.UpdateDuration and not aura.customDurationHook then
+						hooksecurefunc(aura, "UpdateDuration", function(aura, timeLeft)
+							UpdateDuration(aura, timeLeft)
+						end)
+						aura.customDurationHook = true
+					end
+
+					-- 堆叠层数文本格式化（仅限 FontString 类型）
+					if aura.Count and aura.Count.SetFont then
+						aura.Count:ClearAllPoints()
+						aura.Count:SetPoint("BOTTOMRIGHT", 2, 0)
+						aura.Count:SetDrawLayer("ARTWORK")
+						aura.Count:SetFont(C.font.auras_font, C.font.auras_font_size, C.font.auras_font_style)
+						aura.Count:SetShadowOffset(C.font.auras_font_shadow and 1 or 0, C.font.auras_font_shadow and -1 or 0)
 					end
 				else
-					if (index > 1) and (mod(index, rowbuffs) == 1) then
-						aura:SetPoint("TOP", aboveBuff, "BOTTOM", 0, -space)
-						aboveBuff = aura
-					elseif index == 1 then
-						aura:SetPoint("TOPRIGHT", PrivateAnchor, "TOPRIGHT", 0, 0)
-						aboveBuff = aura
-					else
-						aura:SetPoint("RIGHT", previousBuff, "LEFT", -space, 0)
+					-- 未激活的 Debuff 槽位，隐藏其 backdrop
+					if aura.backdrop then
+						aura.backdrop:Hide()
 					end
 				end
+			end
 
-				previousBuff = aura
-
-				-- 仅对普通纹理类型的 Icon 应用裁切和图层设置
-				if aura.Icon and aura.Icon.SetTexCoord then
-					aura.Icon:CropIcon()
-					if aura.Icon.SetDrawLayer then
-						aura.Icon:SetDrawLayer("BORDER")
-					end
-				end
-
-				-- 持续时间文本格式化（仅限 FontString 类型）
-				local duration = aura.Duration
-				if duration and duration.SetFont then
-					duration:ClearAllPoints()
-					duration:SetPoint("CENTER", 2, 1)
-					duration:SetDrawLayer("ARTWORK")
-					duration:SetFont(C.font.auras_font, C.font.auras_font_size, C.font.auras_font_style)
-					duration:SetShadowOffset(C.font.auras_font_shadow and 1 or 0, C.font.auras_font_shadow and -1 or 0)
-				end
-
-				if aura.UpdateDuration and not aura.customDurationHook then
-					hooksecurefunc(aura, "UpdateDuration", function(aura, timeLeft)
-						UpdateDuration(aura, timeLeft)
-					end)
-					aura.customDurationHook = true
-				end
-
-				-- 堆叠层数文本格式化（仅限 FontString 类型）
-				if aura.Count and aura.Count.SetFont then
-					aura.Count:ClearAllPoints()
-					aura.Count:SetPoint("BOTTOMRIGHT", 2, 0)
-					aura.Count:SetDrawLayer("ARTWORK")
-					aura.Count:SetFont(C.font.auras_font, C.font.auras_font_size, C.font.auras_font_style)
-					aura.Count:SetShadowOffset(C.font.auras_font_shadow and 1 or 0, C.font.auras_font_shadow and -1 or 0)
-				end
+			-- 仅当存在真实活跃的 Debuff 时显示容器，无 Debuff 时完全隐藏
+			if visibleIndex > 0 then
+				DebuffFrame:Show()
+				DebuffFrame.AuraContainer:Show()
+			else
+				DebuffFrame:Hide()
+				DebuffFrame.AuraContainer:Hide()
 			end
 		end)
 	end

@@ -382,6 +382,8 @@ local function SkinIcon(icon, t, parent)
 end
 
 local function CropIcon(icon)
+	-- 确保传入的对象为有效纹理，具备 SetTexCoord 方法（防御私有光环等 Frame 占位元素）
+	if not icon or not icon.SetTexCoord then return end
 	icon:SetTexCoord(0.1, 0.9, 0.1, 0.9)
 	icon:SetInside()
 end

@@ -60,20 +60,25 @@ hooksecurefunc(BuffFrame.AuraContainer, "UpdateGridLayout", function(_, auras)
 	local previousBuff, aboveBuff
 	for index, aura in ipairs(auras) do
 		aura:SetSize(C.aura.player_buff_size, C.aura.player_buff_size)
-		aura:SetTemplate("Default")
+		-- 私有光环锚点由系统管理，跳过常规样式美化
+		if not aura.isAuraAnchor then
+			aura:SetTemplate("Default")
 
-		aura.TempEnchantBorder:SetAlpha(0)
-		hooksecurefunc(aura.TempEnchantBorder, "Show", function()
-			aura:SetBackdropBorderColor(0.6, 0.1, 0.6)
-		end)
+			if aura.TempEnchantBorder then
+				aura.TempEnchantBorder:SetAlpha(0)
+				hooksecurefunc(aura.TempEnchantBorder, "Show", function()
+					aura:SetBackdropBorderColor(0.6, 0.1, 0.6)
+				end)
 
-		hooksecurefunc(aura.TempEnchantBorder, "Hide", function()
-			if C.aura.classcolor_border == true then
-				aura:SetBackdropBorderColor(unpack(C.media.classborder_color))
-			else
-				aura:SetBackdropBorderColor(unpack(C.media.border_color))
+				hooksecurefunc(aura.TempEnchantBorder, "Hide", function()
+					if C.aura.classcolor_border == true then
+						aura:SetBackdropBorderColor(unpack(C.media.classborder_color))
+					else
+						aura:SetBackdropBorderColor(unpack(C.media.border_color))
+					end
+				end)
 			end
-		end)
+		end
 
 		aura:ClearAllPoints()
 		if (index > 1) and (mod(index, rowbuffs) == 1) then
@@ -88,17 +93,24 @@ hooksecurefunc(BuffFrame.AuraContainer, "UpdateGridLayout", function(_, auras)
 
 		previousBuff = aura
 
-		aura.Icon:CropIcon()
-		aura.Icon:SetDrawLayer("BORDER")
+		-- 仅对普通纹理类型的 Icon 应用裁切和图层设置
+		if aura.Icon and aura.Icon.SetTexCoord then
+			aura.Icon:CropIcon()
+			if aura.Icon.SetDrawLayer then
+				aura.Icon:SetDrawLayer("BORDER")
+			end
+		end
 
 		local duration = aura.Duration
-		duration:ClearAllPoints()
-		duration:SetPoint("CENTER", 2, 1)
-		duration:SetDrawLayer("ARTWORK")
-		duration:SetFont(C.font.auras_font, C.font.auras_font_size, C.font.auras_font_style)
-		duration:SetShadowOffset(C.font.auras_font_shadow and 1 or 0, C.font.auras_font_shadow and -1 or 0)
+		if duration and duration.SetFont then
+			duration:ClearAllPoints()
+			duration:SetPoint("CENTER", 2, 1)
+			duration:SetDrawLayer("ARTWORK")
+			duration:SetFont(C.font.auras_font, C.font.auras_font_size, C.font.auras_font_style)
+			duration:SetShadowOffset(C.font.auras_font_shadow and 1 or 0, C.font.auras_font_shadow and -1 or 0)
+		end
 
-		if not aura.hook then
+		if aura.UpdateDuration and not aura.hook then
 			hooksecurefunc(aura, "UpdateDuration", function(aura, timeLeft)
 				UpdateDuration(aura, timeLeft)
 			end)
@@ -114,7 +126,7 @@ hooksecurefunc(BuffFrame.AuraContainer, "UpdateGridLayout", function(_, auras)
 			aura.hook = true
 		end
 
-		if aura.Count then -- need to check exist to prevent error in EditMode
+		if aura.Count and aura.Count.SetFont then -- need to check exist to prevent error in EditMode
 			aura.Count:ClearAllPoints()
 			aura.Count:SetPoint("BOTTOMRIGHT", 2, 0)
 			aura.Count:SetDrawLayer("ARTWORK")

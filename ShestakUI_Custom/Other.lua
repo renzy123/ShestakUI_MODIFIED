@@ -204,34 +204,39 @@ if C.aura and C.aura.player_auras == true then
 			local left = T.IsFramePositionedLeft(BuffsAnchor)
 			for index, aura in ipairs(auras) do
 				aura:SetSize(C.aura.player_buff_size, C.aura.player_buff_size)
-				aura:SetTemplate("Default")
 
-				-- 根据减益类型（魔法、诅咒、中毒、疾病、物理等）为边框着色
-				local debuffBorder = aura.Border or aura.DebuffBorder
-				if debuffBorder then
-					debuffBorder:SetAlpha(0)
-					if not aura.customBorderHook then
-						hooksecurefunc(debuffBorder, "SetVertexColor", function(_, r, g, b)
-							if C.aura.debuff_color_type then
+				-- 私有光环锚点（BuffFramePrivateAuraAnchorTemplate）是由暴雪沙盒管理的占位框体，
+				-- 仅参与网格排版，其 Icon 与 Duration 均为 Frame 而非 Texture/FontString，跳过常规样式美化
+				if not aura.isAuraAnchor then
+					aura:SetTemplate("Default")
+
+					-- 根据减益类型（魔法、诅咒、中毒、疾病、物理等）为边框着色
+					local debuffBorder = aura.Border or aura.DebuffBorder
+					if debuffBorder then
+						debuffBorder:SetAlpha(0)
+						if not aura.customBorderHook then
+							hooksecurefunc(debuffBorder, "SetVertexColor", function(_, r, g, b)
+								if C.aura.debuff_color_type then
+									aura:SetBackdropBorderColor(r, g, b)
+								else
+									aura:SetBackdropBorderColor(1, 0, 0)
+								end
+							end)
+							aura.customBorderHook = true
+						end
+						if C.aura.debuff_color_type then
+							local r, g, b = debuffBorder:GetVertexColor()
+							if r and g and b then
 								aura:SetBackdropBorderColor(r, g, b)
 							else
 								aura:SetBackdropBorderColor(1, 0, 0)
 							end
-						end)
-						aura.customBorderHook = true
-					end
-					if C.aura.debuff_color_type then
-						local r, g, b = debuffBorder:GetVertexColor()
-						if r and g and b then
-							aura:SetBackdropBorderColor(r, g, b)
 						else
 							aura:SetBackdropBorderColor(1, 0, 0)
 						end
 					else
 						aura:SetBackdropBorderColor(1, 0, 0)
 					end
-				else
-					aura:SetBackdropBorderColor(1, 0, 0)
 				end
 
 				aura:ClearAllPoints()
@@ -259,13 +264,17 @@ if C.aura and C.aura.player_auras == true then
 
 				previousBuff = aura
 
-				if aura.Icon then
+				-- 仅对普通纹理类型的 Icon 应用裁切和图层设置
+				if aura.Icon and aura.Icon.SetTexCoord then
 					aura.Icon:CropIcon()
-					aura.Icon:SetDrawLayer("BORDER")
+					if aura.Icon.SetDrawLayer then
+						aura.Icon:SetDrawLayer("BORDER")
+					end
 				end
 
+				-- 持续时间文本格式化（仅限 FontString 类型）
 				local duration = aura.Duration
-				if duration then
+				if duration and duration.SetFont then
 					duration:ClearAllPoints()
 					duration:SetPoint("CENTER", 2, 1)
 					duration:SetDrawLayer("ARTWORK")
@@ -273,14 +282,15 @@ if C.aura and C.aura.player_auras == true then
 					duration:SetShadowOffset(C.font.auras_font_shadow and 1 or 0, C.font.auras_font_shadow and -1 or 0)
 				end
 
-				if not aura.customDurationHook then
+				if aura.UpdateDuration and not aura.customDurationHook then
 					hooksecurefunc(aura, "UpdateDuration", function(aura, timeLeft)
 						UpdateDuration(aura, timeLeft)
 					end)
 					aura.customDurationHook = true
 				end
 
-				if aura.Count then
+				-- 堆叠层数文本格式化（仅限 FontString 类型）
+				if aura.Count and aura.Count.SetFont then
 					aura.Count:ClearAllPoints()
 					aura.Count:SetPoint("BOTTOMRIGHT", 2, 0)
 					aura.Count:SetDrawLayer("ARTWORK")

@@ -830,35 +830,8 @@ local function Shared(self, unit)
 		end
 
 		if unit == "player" then
-			-- Debuffs on player
-			if C.aura.player_auras then
-				self.Debuffs = self:CreateAuras({
-					initialAnchor = "BOTTOMRIGHT",
-					growthX = "LEFT",
-					layoutLimit = player_width + 5,
-				})
-				self.Debuffs.showCount = true
-				self.Debuffs.elementSpacing = T.Scale(3)
-				self.Debuffs.tooltipAnchor = "ANCHOR_TOPRIGHT"
-				self.Debuffs.tooltipOffsetY = 3
-				self.Debuffs.size = T.Scale(C.aura.debuff_size)
-				self.Debuffs.sortDirection = AuraContainerSortDirection.Reverse
-				self.Debuffs.PostCreateButton = T.PostCreateIcon
-
-				if (T.class == "DEATHKNIGHT" and C.unitframe_class_bar.rune)
-				or ((T.class == "DRUID" or T.class == "ROGUE") and C.unitframe_class_bar.combo and C.unitframe_class_bar.combo_old ~= true)
-				or (T.class == "SHAMAN" and C.unitframe_class_bar.totem)
-				or (T.class == "WARLOCK" and C.unitframe_class_bar.shard) then
-					self.Debuffs:SetPoint("BOTTOMRIGHT", self, "TOPRIGHT", 2, 19)
-				else
-					self.Debuffs:SetPoint("BOTTOMRIGHT", self, "TOPRIGHT", 2, 5)
-				end
-
-				self.Debuffs:AddGroup("HARMFUL", {
-					maxFrameCount = 10,
-				})
-
-			else
+			-- 玩家 DEBUFF 已移至右上角 BUFF 栏下方显示（通过 DebuffFrame 呈现），此处不再在头像上方创建 Debuffs
+			if not C.aura.player_auras then
 				BuffFrame:Hide()
 				DebuffFrame:Hide()
 			end

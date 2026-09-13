@@ -46,8 +46,13 @@ local function LoadSkin()
 
 	T.SkinScrollBar(frame.GroupBuffFilter.Scroll.ScrollBar)
 
+	-- 使用弱引用侧表记录已美化的框架，绝不向暴雪原生对象直接注入字段，防止引发沙盒 Taint
+	local skinnedHeaders = setmetatable({}, { __mode = "k" })
+	local skinnedItems = setmetatable({}, { __mode = "k" })
+	local skinnedFrames = setmetatable({}, { __mode = "k" })
+
 	local function SkinHeaders(header)
-		if header and not header.IsSkinned then
+		if header and not skinnedHeaders[header] then
 			header:StripTextures()
 			header:CreateBackdrop("Overlay")
 			header.backdrop:SetPoint("TOPLEFT", 2, 0)
@@ -58,12 +63,12 @@ local function LoadSkin()
 			hooksecurefunc(header.Right, "SetAtlas", updateCollapse)
 			hooksecurefunc(header.HighlightRight, "SetAtlas", updateCollapse)
 
-			header.IsSkinned = true
+			skinnedHeaders[header] = true
 		end
 	end
 
 	local function SkinSettingItem(item)
-		if item.IsSkinned then return end
+		if not item or skinnedItems[item] then return end
 
 		local icon = item.Icon
 		if icon then
@@ -95,7 +100,7 @@ local function LoadSkin()
 			end
 		end
 
-		item.IsSkinned = true
+		skinnedItems[item] = true
 	end
 
 	local function HandleSettingItemPool(self)
@@ -235,17 +240,12 @@ local function LoadSkin()
 	}
 
 	local function SkinItemFrame(frame)
+		if not frame or skinnedFrames[frame] then return end
+		skinnedFrames[frame] = true
+
 		if frame.Cooldown then
 			frame.Cooldown:SetSwipeTexture(C.media.blank)
-
-			if not frame.Cooldown.done then
-				for key, func in next, hookFunctions do
-					if frame[key] then
-						hooksecurefunc(frame, key, func)
-					end
-				end
-				frame.Cooldown.done = true
-			end
+			SetTimerShown(frame)
 		end
 
 		if frame.Bar then
@@ -260,6 +260,7 @@ local function LoadSkin()
 	end
 
 	local function HandleViewer(element)
+		if not element or not element.itemFramePool then return end
 		hooksecurefunc(element, "OnAcquireItemFrame", AcquireItemFrame)
 
 		for frame in element.itemFramePool:EnumerateActive() do
@@ -271,6 +272,20 @@ local function LoadSkin()
 	HandleViewer(_G.BuffBarCooldownViewer)
 	HandleViewer(_G.BuffIconCooldownViewer)
 	HandleViewer(_G.EssentialCooldownViewer)
+
+	-- 防御性沙盒安全包装：
+	-- 当暴雪在进出战斗（PLAYER_IN_COMBAT_CHANGED）释放 itemFrame 对象池时，
+	-- 若由于外部执行环境受限导致 UnregisterAuraInstanceIDItemFrame 索引 forbidden table 报错，
+	-- 此处使用 pcall 捕获异常，防止向用户弹窗阻断，并通过 TaintTracker 记录详细上下文日志供调试排查。
+	if _G.CooldownViewerMixin and _G.CooldownViewerMixin.UnregisterAuraInstanceIDItemFrame then
+		local origUnregister = _G.CooldownViewerMixin.UnregisterAuraInstanceIDItemFrame
+		_G.CooldownViewerMixin.UnregisterAuraInstanceIDItemFrame = function(self, auraInstanceID, itemFrame)
+			local ok, err = pcall(origUnregister, self, auraInstanceID, itemFrame)
+			if not ok and T.LogTaint then
+				T.LogTaint("CooldownViewer", err)
+			end
+		end
+	end
 end
 
 T.SkinFuncs["Blizzard_CooldownViewer"] = LoadSkin

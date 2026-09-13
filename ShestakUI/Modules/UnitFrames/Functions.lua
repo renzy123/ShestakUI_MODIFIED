@@ -1146,16 +1146,16 @@ end
 local frame = CreateFrame("Frame")
 frame:RegisterEvent("PLAYER_LOGIN")
 frame:SetScript("OnEvent", function(self)
-	-- 当未启用 Filger 或 Anchor 框架未初始化时安全跳过，并及时注销事件避免重复回调
+	-- 当未启用 Filger 或头像模块未启用、或 Anchor 框架未初始化时安全跳过，并注销事件
 	if C.unitframe.enable ~= true or C.filger.enable ~= true or not P_BUFF_ICON_Anchor then
-		self:UnregisterEvent("PLAYER_LOGIN")
+		self:UnregisterAllEvents()
 		return
 	end
 
 	if not P_BUFF_ICON_Anchor.done then
 		createAnchors()
 	end
-	self:UnregisterEvent("PLAYER_LOGIN")
+	self:UnregisterAllEvents()
 end)
 
 T.PostCreateFilgerIcon = function(element, button, options)

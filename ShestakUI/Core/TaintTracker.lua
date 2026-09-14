@@ -23,6 +23,10 @@ local TAINT_DIAGNOSTIC_MAP = {
 		module = "ShestakUI/Modules/Maps/WorldMap.lua",
 		desc = "世界地图框架操作。常见原因为在 SynchronizeDisplayState 或战斗中直接调用 ClearAllPoints/SetPoint。"
 	},
+	["PerformEmote"] = {
+		module = "ShestakUI/Modules/Maps/WorldMap.lua",
+		desc = "世界地图打开时 PerformEmote('READ') 遭拦截。原因为打开地图阶段（OnShow/MapCanvas/Pin）执行了非安全代码导致上下文被污染。"
+	},
 	["FlightPoint"] = {
 		module = "ShestakUI/Modules/Maps/WorldMap.lua",
 		desc = "飞行点标记刷新。与 SharedMapPoiTemplates 相关联，受地图 Pin 池污染影响。"

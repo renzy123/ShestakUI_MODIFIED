@@ -91,5 +91,6 @@
 	<Script file="Transmog.lua"/>
 	<Script file="Tutorial.lua"/>
 	<Script file="WeeklyRewards.lua"/>
-	<Script file="WorldMap.lua"/>
+	<!-- 禁用大地图皮肤美化，避免对 WorldMapFrame 及任务面板造成沙盒污染 -->
+	<!-- <Script file="WorldMap.lua"/> -->
 </Ui>

@@ -183,10 +183,11 @@
 
 	<Script file="Modules\Maps\BattlefieldMap.lua"/>
 	<Script file="Modules\Maps\ButtonCollect.lua"/>
-	<Script file="Modules\Maps\FogOfWar.lua"/>
+	<!-- 禁用大地图迷雾与世界地图模块，避免 11.0 沙盒污染，保留原生大地图与纯净小地图功能 -->
+	<!-- <Script file="Modules\Maps\FogOfWar.lua"/> -->
 	<Script file="Modules\Maps\MiniMap.lua"/>
 	<Script file="Modules\Maps\ToggleMenu.lua"/>
-	<Script file="Modules\Maps\WorldMap.lua"/>
+	<!-- <Script file="Modules\Maps\WorldMap.lua"/> -->
 
 	<Script file="Modules\Quests\AutoAccept.lua"/>
 	<Script file="Modules\Quests\AutoButton.lua"/>

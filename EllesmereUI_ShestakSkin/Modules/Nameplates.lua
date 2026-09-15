@@ -5,44 +5,106 @@
 local ADDON_NAME, ns = ...
 local SK = ns.SK
 
+-- 强制锁定状态条材质为 Shestak 材质，防御暴雪原生更新与重用时回退为默认材质
+local function EnforceStatusBarTexture(bar, targetTexture)
+    if not bar or not bar.SetStatusBarTexture then return end
+
+    -- 1. 立即设置一次状态条材质
+    bar:SetStatusBarTexture(targetTexture)
+
+    -- 2. 挂载安全钩子，防止暴雪原生逻辑（如 CompactUnitFrame / NamePlateDriver）再次将其改写回默认材质
+    if not bar._shetsakTexHooked then
+        bar._shetsakTexHooked = true
+        hooksecurefunc(bar, "SetStatusBarTexture", function(self, texture)
+            if texture ~= targetTexture then
+                self:SetStatusBarTexture(targetTexture)
+            end
+        end)
+    end
+
+    -- 3. 兼容魔兽世界 11.0+ 暴雪 NamePlateHealthBar 的内部 barTexture 与 Atlas
+    local fillTex = bar.barTexture or (bar.GetStatusBarTexture and bar:GetStatusBarTexture())
+    if fillTex and not fillTex._shetsakTexHooked then
+        fillTex._shetsakTexHooked = true
+        if fillTex.SetTexture then
+            hooksecurefunc(fillTex, "SetTexture", function(self, tex)
+                if tex ~= targetTexture then
+                    self:SetTexture(targetTexture)
+                end
+            end)
+        end
+        if fillTex.SetAtlas then
+            hooksecurefunc(fillTex, "SetAtlas", function(self)
+                self:SetTexture(targetTexture)
+            end)
+        end
+    end
+end
+
+-- 获取暴雪原生姓名板的生命条（兼容 11.0+ HealthBarsContainer 与传统 healthBar）
+local function GetBlizzardHealthBar(uf)
+    if not uf then return nil end
+    return (uf.HealthBarsContainer and uf.HealthBarsContainer.healthBar) or uf.healthBar
+end
+
+-- 获取暴雪原生姓名板的施法条（兼容 11.0+ CastBarsContainer 与传统 castBar）
+local function GetBlizzardCastBar(uf)
+    if not uf then return nil end
+    return (uf.CastBarsContainer and uf.CastBarsContainer.castBar) or uf.castBar
+end
+
 -- 美化单个姓名板（支持 EllesmereUINameplates 与原生系统姓名板）
 local function SkinNamePlate(nameplate)
     if not nameplate then return end
 
     -- 1. 处理 EllesmereUINameplates 内部结构
     local plate = nameplate.UnitFrame or nameplate
-    if plate.health and plate.health.SetStatusBarTexture and not plate.health._shetsakSkinned then
-        plate.health:SetStatusBarTexture(SK.Texture)
-        SK:CreatePixelBorder(plate.health)
-        plate.health._shetsakSkinned = true
+    if plate.health and plate.health.SetStatusBarTexture then
+        EnforceStatusBarTexture(plate.health, SK.Texture)
+        if not plate.health._shetsakBordered then
+            SK:CreatePixelBorder(plate.health)
+            plate.health._shetsakBordered = true
+        end
     end
 
-    if plate.cast and plate.cast.SetStatusBarTexture and not plate.cast._shetsakSkinned then
-        plate.cast:SetStatusBarTexture(SK.Texture)
-        SK:CreatePixelBorder(plate.cast)
+    if plate.cast and plate.cast.SetStatusBarTexture then
+        EnforceStatusBarTexture(plate.cast, SK.Texture)
+        if not plate.cast._shetsakBordered then
+            SK:CreatePixelBorder(plate.cast)
+            plate.cast._shetsakBordered = true
+        end
         -- 施法图标
-        if plate.cast.icon then
+        if plate.cast.icon and not plate.cast.icon._shetsakBordered then
             SK:CropIcon(plate.cast.icon)
             SK:CreatePixelBorder(plate.cast.icon:GetParent() or plate.cast)
+            plate.cast.icon._shetsakBordered = true
         end
-        plate.cast._shetsakSkinned = true
     end
 
-    -- 2. 处理原生暴雪姓名板结构 (备用兜底)
+    -- 2. 处理原生暴雪姓名板结构 (覆盖友方或副本中未被 Ellesmere 接管的原生姓名板)
     if nameplate.UnitFrame then
         local uf = nameplate.UnitFrame
-        if uf.healthBar and uf.healthBar.SetStatusBarTexture and not uf.healthBar._shetsakSkinned then
-            uf.healthBar:SetStatusBarTexture(SK.Texture)
-            SK:CreatePixelBorder(uf.healthBar)
-            uf.healthBar._shetsakSkinned = true
-        end
-        if uf.castBar and uf.castBar.SetStatusBarTexture and not uf.castBar._shetsakSkinned then
-            uf.castBar:SetStatusBarTexture(SK.Texture)
-            SK:CreatePixelBorder(uf.castBar)
-            if uf.castBar.Icon then
-                SK:CropIcon(uf.castBar.Icon)
+        local blizzHp = GetBlizzardHealthBar(uf)
+        if blizzHp and blizzHp.SetStatusBarTexture then
+            EnforceStatusBarTexture(blizzHp, SK.Texture)
+            if not blizzHp._shetsakBordered then
+                SK:CreatePixelBorder(blizzHp)
+                blizzHp._shetsakBordered = true
             end
-            uf.castBar._shetsakSkinned = true
+        end
+
+        local blizzCast = GetBlizzardCastBar(uf)
+        if blizzCast and blizzCast.SetStatusBarTexture then
+            EnforceStatusBarTexture(blizzCast, SK.Texture)
+            if not blizzCast._shetsakBordered then
+                SK:CreatePixelBorder(blizzCast)
+                blizzCast._shetsakBordered = true
+            end
+            local icon = blizzCast.Icon or (blizzCast.icon)
+            if icon and not icon._shetsakBordered then
+                SK:CropIcon(icon)
+                icon._shetsakBordered = true
+            end
         end
     end
 end

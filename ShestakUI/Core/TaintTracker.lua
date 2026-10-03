@@ -46,6 +46,14 @@ local TAINT_DIAGNOSTIC_MAP = {
 	["UIWidget"] = {
 		module = "ShestakUI/Modules/Blizzard/UIWidget.lua 或 Tooltip",
 		desc = "UIWidget 文本状态组件。常见原因为 Tooltip 钩子在 Widget 渲染期间修改了文本高度导致秘密数值（secret value）计算异常。"
+	},
+	["RightManagedFrameContainer"] = {
+		module = "ShestakUI/Modules/Blizzard/UIWidget.lua",
+		desc = "暴雪右侧受管理容器系统。根因通常为战斗中外部触发 UIWidgetBelowMinimapContainerFrame 锚点重新计算，导致 ClearAllPoints/SetPoint 污染了暴雪受管理容器沙盒。"
+	},
+	["BossTargetFrameContainer"] = {
+		module = "ShestakUI/Libs/oUF/Blizzard.lua",
+		desc = "暴雪首领目标受管理容器。在战斗中由暴雪右侧布局管理器触发，受右侧受管理容器（RightManagedFrameContainer）的锚点污染传导影响。"
 	}
 }
 

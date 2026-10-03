@@ -33,8 +33,31 @@ frame:SetScript("OnEvent", function(self, event)
 	end
 end)
 
+-- 监听战斗进出状态，避免战斗中篡改受保护容器锚点引起污染
+local widgetCombatQueue = false
+local combatWatcher = CreateFrame("Frame")
+combatWatcher:RegisterEvent("PLAYER_REGEN_ENABLED")
+combatWatcher:SetScript("OnEvent", function()
+	if widgetCombatQueue then
+		widgetCombatQueue = false
+		if below and belowAnchor and not InCombatLockdown() then
+			below:ClearAllPoints()
+			below:SetPoint("TOP", belowAnchor)
+		end
+		if power and powerAnchor and not InCombatLockdown() then
+			power:ClearAllPoints()
+			power:SetPoint("TOP", powerAnchor)
+		end
+	end
+end)
+
 hooksecurefunc(below, "SetPoint", function(self, _, anchor)
 	if anchor and anchor ~= belowAnchor then
+		-- 战斗中绝对禁止直接调用受保护对象的 ClearAllPoints/SetPoint，防止引发暴雪沙盒阻断 (ADDON_ACTION_BLOCKED)
+		if InCombatLockdown() then
+			widgetCombatQueue = true
+			return
+		end
 		self:ClearAllPoints()
 		self:SetPoint("TOP", belowAnchor)
 	end
@@ -47,6 +70,11 @@ powerAnchor:SetPoint(unpack(C.position.uiwidget_below))
 
 hooksecurefunc(power, "SetPoint", function(self, _, anchor)
 	if anchor and anchor ~= powerAnchor then
+		-- 战斗中延后处理
+		if InCombatLockdown() then
+			widgetCombatQueue = true
+			return
+		end
 		self:ClearAllPoints()
 		self:SetPoint("TOP", powerAnchor)
 	end
@@ -230,11 +258,14 @@ local function SkinItem(widget)
 end
 
 local function SkinText(widget, widgetInfo)
-	if widgetInfo.enabledState == 3 then
-		T.ReplaceIconString(widget.Text, nil, 30)	-- this is for major faction icon
-	else
-		T.ReplaceIconString(widget.Text)			-- find in Worldsoul Memory tooltip
-	end
+	if not widget or not widgetInfo or InCombatLockdown() then return end
+	pcall(function()
+		if widgetInfo.enabledState == 3 then
+			T.ReplaceIconString(widget.Text, nil, 30)	-- 大势力阵营图标
+		else
+			T.ReplaceIconString(widget.Text)			-- 世界之魂记忆等鼠标提示文本
+		end
+	end)
 end
 
 local frame = CreateFrame("Frame")

@@ -61,9 +61,23 @@ local function EnforceStatusBarTexture(bar, targetTexture)
 	-- 2. 挂载安全钩子，防止暴雪原生逻辑（如 CompactUnitFrame / NamePlateDriver）再次将其改写回默认材质
 	if not bar._shetsakTexHooked then
 		bar._shetsakTexHooked = true
+		local isSetting = false
 		hooksecurefunc(bar, "SetStatusBarTexture", function(self, texture)
-			if texture ~= targetTexture then
-				self:SetStatusBarTexture(targetTexture)
+			-- 防御死循环与受保护的秘密值 (secret string value)
+			if isSetting then return end
+			-- 如果传入的材质是暴雪 11.0+ 的 secret 秘密值，则不可直接执行 ~= 比较，优先使用 canaccessvalue 校验
+			local canAccess = (canaccessvalue == nil) or canaccessvalue(texture)
+			if canAccess then
+				if texture ~= targetTexture then
+					isSetting = true
+					pcall(self.SetStatusBarTexture, self, targetTexture)
+					isSetting = false
+				end
+			else
+				-- 无法直接安全比较（受沙盒秘密保护），使用 pcall 静默更新为目标材质
+				isSetting = true
+				pcall(self.SetStatusBarTexture, self, targetTexture)
+				isSetting = false
 			end
 		end)
 	end
@@ -72,16 +86,30 @@ local function EnforceStatusBarTexture(bar, targetTexture)
 	local fillTex = bar.barTexture or (bar.GetStatusBarTexture and bar:GetStatusBarTexture())
 	if fillTex and not fillTex._shetsakTexHooked then
 		fillTex._shetsakTexHooked = true
+		local isSettingTex = false
 		if fillTex.SetTexture then
 			hooksecurefunc(fillTex, "SetTexture", function(self, tex)
-				if tex ~= targetTexture then
-					self:SetTexture(targetTexture)
+				if isSettingTex then return end
+				local canAccess = (canaccessvalue == nil) or canaccessvalue(tex)
+				if canAccess then
+					if tex ~= targetTexture then
+						isSettingTex = true
+						pcall(self.SetTexture, self, targetTexture)
+						isSettingTex = false
+					end
+				else
+					isSettingTex = true
+					pcall(self.SetTexture, self, targetTexture)
+					isSettingTex = false
 				end
 			end)
 		end
 		if fillTex.SetAtlas then
 			hooksecurefunc(fillTex, "SetAtlas", function(self)
-				self:SetTexture(targetTexture)
+				if isSettingTex then return end
+				isSettingTex = true
+				pcall(self.SetTexture, self, targetTexture)
+				isSettingTex = false
 			end)
 		end
 	end

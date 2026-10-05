@@ -33,11 +33,11 @@ local function LoadSkin()
 	-- BonusRollFrame.SpecIcon:SetTexture("Interface\\Icons\\spell_nature_brilliance") -- for test
 
 	BonusRollFrame.SpecIcon.b = CreateFrame("Frame", nil, BonusRollFrame)
-	BonusRollFrame.SpecIcon.b:SetFrameLevel(6)
+	BonusRollFrame.SpecIcon.b:SetFrameLevel(BonusRollFrame.SpecIcon:GetParent():GetFrameLevel())
 	BonusRollFrame.SpecIcon.b:SetTemplate("Default")
 	BonusRollFrame.SpecIcon.b:SetPoint("TOPLEFT", BonusRollFrame.SpecIcon, "TOPLEFT", -2, 2)
 	BonusRollFrame.SpecIcon.b:SetPoint("BOTTOMRIGHT", BonusRollFrame.SpecIcon, "BOTTOMRIGHT", 2, -2)
-	BonusRollFrame.SpecIcon:SetParent(BonusRollFrame.SpecIcon.b)
+	-- 注意：不要改变原生 SpecIcon 的 Parent（SetParent 会污染暴雪原生窗口树结构）
 
 	hooksecurefunc(BonusRollFrame.SpecIcon, "Hide", function(specIcon)
 		if specIcon.b and specIcon.b:IsShown() then

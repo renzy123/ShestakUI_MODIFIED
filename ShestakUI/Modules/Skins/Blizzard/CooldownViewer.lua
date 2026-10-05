@@ -176,17 +176,36 @@ local function LoadSkin()
 		end
 	end
 
+	-- 使用弱引用表存储美化背景框，避免直接在暴雪原生 itemFrame 上写入 .backdrop 字段导致池对象沙盒受限污染
+	local skinnedBackdrops = setmetatable({}, { __mode = "k" })
+
 	local function SkinIcon(container, icon)
 		UpdateTextContainer(container)
-		icon:SkinIcon()
+
+		-- 自定义背景：将背景框挂载到容器且只记录在弱引用表中，不侵入 container 原生属性
+		if not skinnedBackdrops[container] then
+			local b = CreateFrame("Frame", nil, container)
+			b:SetOutside(icon)
+			b:SetTemplate("Default")
+			if container:GetFrameLevel() - 1 >= 0 then
+				b:SetFrameLevel(container:GetFrameLevel() - 1)
+			else
+				b:SetFrameLevel(0)
+			end
+			skinnedBackdrops[container] = b
+		end
+
+		if icon.SetTexCoord then
+			icon:SetTexCoord(0.1, 0.9, 0.1, 0.9)
+		end
 
 		if container.DebuffBorder then
 			container.DebuffBorder:SetAlpha(0)
 		end
 
 		local _, mask, overlay = container:GetRegions()
-		mask:Hide()
-		overlay:Hide()
+		if mask then mask:Hide() end
+		if overlay then overlay:Hide() end
 
 		local outOfRange = container.OutOfRange
 		if outOfRange then
@@ -216,9 +235,12 @@ local function LoadSkin()
 				if atlas == "UI-HUD-CoolDownManager-Bar" then
 					region:SetPoint("TOPLEFT", 1, 0)
 					region:SetPoint("BOTTOMLEFT", -1, 0)
-				elseif atlas == "UI-HUD-CoolDownManager-Bar-BG" and not region.backdrop then
+				elseif atlas == "UI-HUD-CoolDownManager-Bar-BG" and not skinnedBackdrops[region] then
 					region:SetAlpha(0)
-					region:CreateBackdrop("Transparent")
+					local b = CreateFrame("Frame", nil, bar)
+					b:SetOutside(region)
+					b:SetTemplate("Transparent")
+					skinnedBackdrops[region] = b
 				end
 			end
 		end
@@ -227,11 +249,13 @@ local function LoadSkin()
 	local function SetTimerShown(self)
 		if self.Cooldown then
 			local text = self.Cooldown:GetRegions()
-			text:SetFont(C.font.cooldown_timers_font, C.font.cooldown_timers_font_size, C.font.cooldown_timers_font_style)
-			text:SetShadowOffset(C.font.cooldown_timers_font_shadow and 1 or 0, C.font.cooldown_timers_font_shadow and -1 or 0)
-			text:ClearAllPoints()
-			text:SetPoint("LEFT", -2, 0)
-			text:SetPoint("RIGHT", 3, 0)
+			if text and text.SetFont then
+				text:SetFont(C.font.cooldown_timers_font, C.font.cooldown_timers_font_size, C.font.cooldown_timers_font_style)
+				text:SetShadowOffset(C.font.cooldown_timers_font_shadow and 1 or 0, C.font.cooldown_timers_font_shadow and -1 or 0)
+				text:ClearAllPoints()
+				text:SetPoint("LEFT", -2, 0)
+				text:SetPoint("RIGHT", 3, 0)
+			end
 		end
 	end
 
@@ -268,23 +292,38 @@ local function LoadSkin()
 		end
 	end
 
-	HandleViewer(_G.UtilityCooldownViewer)
-	HandleViewer(_G.BuffBarCooldownViewer)
-	HandleViewer(_G.BuffIconCooldownViewer)
-	HandleViewer(_G.EssentialCooldownViewer)
+	local viewers = {
+		_G.UtilityCooldownViewer,
+		_G.BuffBarCooldownViewer,
+		_G.BuffIconCooldownViewer,
+		_G.EssentialCooldownViewer
+	}
+
+	for _, viewer in ipairs(viewers) do
+		HandleViewer(viewer)
+	end
 
 	-- 防御性沙盒安全包装：
-	-- 当暴雪在进出战斗（PLAYER_IN_COMBAT_CHANGED）释放 itemFrame 对象池时，
-	-- 若由于外部执行环境受限导致 UnregisterAuraInstanceIDItemFrame 索引 forbidden table 报错，
-	-- 此处使用 pcall 捕获异常，防止向用户弹窗阻断，并通过 TaintTracker 记录详细上下文日志供调试排查。
-	if _G.CooldownViewerMixin and _G.CooldownViewerMixin.UnregisterAuraInstanceIDItemFrame then
-		local origUnregister = _G.CooldownViewerMixin.UnregisterAuraInstanceIDItemFrame
-		_G.CooldownViewerMixin.UnregisterAuraInstanceIDItemFrame = function(self, auraInstanceID, itemFrame)
+	-- 当暴雪在进出战斗、模式切换（如地下堡完成触发 UIModeManager/Roleset 变更）或释放 itemFramePool 时，
+	-- 若外部执行上下文被污染，原生代码执行 UnregisterAuraInstanceIDItemFrame 会因索引受限表（forbidden table）而抛出阻断异常。
+	-- 此处不仅 hook 全局 Mixin，还对已经实例化完成的各个具体 Viewer 对象进行防护性包装。
+	local function ProtectViewerUnregister(target)
+		if not target or not target.UnregisterAuraInstanceIDItemFrame then return end
+		local origUnregister = target.UnregisterAuraInstanceIDItemFrame
+		target.UnregisterAuraInstanceIDItemFrame = function(self, auraInstanceID, itemFrame)
 			local ok, err = pcall(origUnregister, self, auraInstanceID, itemFrame)
 			if not ok and T.LogTaint then
 				T.LogTaint("CooldownViewer", err)
 			end
 		end
+	end
+
+	if _G.CooldownViewerMixin then
+		ProtectViewerUnregister(_G.CooldownViewerMixin)
+	end
+
+	for _, viewer in ipairs(viewers) do
+		ProtectViewerUnregister(viewer)
 	end
 end
 

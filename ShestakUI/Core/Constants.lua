@@ -1,4 +1,4 @@
-﻿local T, C, L = unpack(ShestakUI)
+local T, C, L = unpack(ShestakUI)
 
 ----------------------------------------------------------------------------------------
 --	ShestakUI variables
@@ -23,12 +23,17 @@ GetContainerItemInfo = function(bagIndex, slotIndex)
 	end
 end
 
-UnitAura = function(unit, auraIndex, filter)
-	return AuraUtil.UnpackAuraData(C_UnitAuras.GetAuraDataByIndex(unit, auraIndex, filter))
+-- NOTE: Restore old function (仅在全局不存在时提供回退，且将安全函数注册在 T 命名空间中)
+if not _G.UnitAura then
+	_G.UnitAura = function(unit, auraIndex, filter)
+		return AuraUtil.UnpackAuraData(C_UnitAuras.GetAuraDataByIndex(unit, auraIndex, filter))
+	end
 end
 
-UnitBuff = function(unit, auraIndex, filter)
-	return AuraUtil.UnpackAuraData(C_UnitAuras.GetBuffDataByIndex(unit, auraIndex, filter))
+if not _G.UnitBuff then
+	_G.UnitBuff = function(unit, auraIndex, filter)
+		return AuraUtil.UnpackAuraData(C_UnitAuras.GetBuffDataByIndex(unit, auraIndex, filter))
+	end
 end
 
 GetSpellInfo = function(data)

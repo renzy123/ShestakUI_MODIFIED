@@ -1,4 +1,4 @@
-﻿local T, C, L = unpack(ShestakUI)
+local T, C, L = unpack(ShestakUI)
 if C.announcements.flask_food ~= true then return end
 
 ----------------------------------------------------------------------------------------
@@ -12,9 +12,11 @@ local function scan(unit)
 	table.wipe(unitBuffs)
 	local i = 1
 	while true do
-		local name = UnitAura(unit, i, "HELPFUL")
-		if not name then return end
-		unitBuffs[name] = true
+		local auraData = C_UnitAuras.GetAuraDataByIndex(unit, i, "HELPFUL")
+		if not auraData then return end
+		if auraData.name then
+			unitBuffs[auraData.name] = true
+		end
 		i = i + 1
 	end
 end

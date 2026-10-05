@@ -304,26 +304,36 @@ local function LoadSkin()
 	end
 
 	-- 防御性沙盒安全包装：
-	-- 当暴雪在进出战斗、模式切换（如地下堡完成触发 UIModeManager/Roleset 变更）或释放 itemFramePool 时，
-	-- 若外部执行上下文被污染，原生代码执行 UnregisterAuraInstanceIDItemFrame 会因索引受限表（forbidden table）而抛出阻断异常。
-	-- 此处不仅 hook 全局 Mixin，还对已经实例化完成的各个具体 Viewer 对象进行防护性包装。
-	local function ProtectViewerUnregister(target)
-		if not target or not target.UnregisterAuraInstanceIDItemFrame then return end
-		local origUnregister = target.UnregisterAuraInstanceIDItemFrame
-		target.UnregisterAuraInstanceIDItemFrame = function(self, auraInstanceID, itemFrame)
-			local ok, err = pcall(origUnregister, self, auraInstanceID, itemFrame)
+	-- 当暴雪在进出战斗、模式切换（如地下堡完成触发 UIModeManager/Roleset 变更）或光环更新（OnUnitAura / CheckAuraAddedAlertTriggers）时，
+	-- 若外部执行上下文被污染，原生代码执行索引受限表（forbidden table：auraInstanceIDToItemFramesMap）会抛出阻断异常。
+	-- 此处不仅 hook 全局 Mixin，还对已经实例化完成的各个具体 Viewer 对象进行全面的沙盒异常防护包装。
+	local function ProtectViewerMethod(target, methodName)
+		if not target or not target[methodName] then return end
+		local origMethod = target[methodName]
+		target[methodName] = function(self, ...)
+			local ok, err = pcall(origMethod, self, ...)
 			if not ok and T.LogTaint then
-				T.LogTaint("CooldownViewer", err)
+				T.LogTaint("CooldownViewer:"..methodName, err)
 			end
 		end
 	end
 
+	local targetMethods = {
+		"UnregisterAuraInstanceIDItemFrame",
+		"CheckAuraAddedAlertTriggers",
+		"OnUnitAura"
+	}
+
 	if _G.CooldownViewerMixin then
-		ProtectViewerUnregister(_G.CooldownViewerMixin)
+		for _, method in ipairs(targetMethods) do
+			ProtectViewerMethod(_G.CooldownViewerMixin, method)
+		end
 	end
 
 	for _, viewer in ipairs(viewers) do
-		ProtectViewerUnregister(viewer)
+		for _, method in ipairs(targetMethods) do
+			ProtectViewerMethod(viewer, method)
+		end
 	end
 end
 
